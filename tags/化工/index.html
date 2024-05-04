@@ -338,10 +338,10 @@
             <div class="tag-chips">
                 
                 
-                <a href="/tags/%E5%AD%A6%E4%B9%A0/" title="学习: 1">
+                <a href="/tags/%E8%80%81%E6%AF%8D%E9%B8%A1/" title="老母鸡: 1">
                     <span class="chip center-align waves-effect waves-light
                              chip-default "
-                            data-tagname="学习" style="background-color: #F9EBEA;">学习
+                            data-tagname="老母鸡" style="background-color: #F9EBEA;">老母鸡
                         <span class="tag-length">1</span>
                     </span>
                 </a>
@@ -356,19 +356,19 @@
                 </a>
                 
                 
-                <a href="/tags/%E8%80%81%E6%AF%8D%E9%B8%A1/" title="老母鸡: 1">
+                <a href="/tags/%E5%8C%96%E5%B7%A5/" title="化工: 1">
                     <span class="chip center-align waves-effect waves-light
-                             chip-default "
-                            data-tagname="老母鸡" style="background-color: #D5F5E3;">老母鸡
+                             chip-active "
+                            data-tagname="化工" style="background-color: #D5F5E3;">化工
                         <span class="tag-length">1</span>
                     </span>
                 </a>
                 
                 
-                <a href="/tags/%E5%8C%96%E5%B7%A5/" title="化工: 1">
+                <a href="/tags/%E5%AD%A6%E4%B9%A0/" title="学习: 1">
                     <span class="chip center-align waves-effect waves-light
-                             chip-active "
-                            data-tagname="化工" style="background-color: #E8F8F5;">化工
+                             chip-default "
+                            data-tagname="学习" style="background-color: #E8F8F5;">学习
                         <span class="tag-length">1</span>
                     </span>
                 </a>
@@ -384,7 +384,7 @@
         <div class="row tags-posts">
             
             
-            <div class="article tag-post col s12 m6 l4" data-tags="生活, 老母鸡, 化工" data-aos="fade-up">
+            <div class="article tag-post col s12 m6 l4" data-tags="老母鸡, 生活, 化工" data-aos="fade-up">
                 <div class="card">
                     <a href="/2024/05/03/hua-gong-lao-mu-ji/">
                         <div class="card-image tag-image">
@@ -691,27 +691,6 @@ $(function () {
     <script src="/libs/instantpage/instantpage.js" type="module"></script>
     
 
-
-        <script src="//cdn.jsdelivr.net/npm/js-base64/base64.min.js"></script>
-        <script>
-        const hasAttr = (e,a) => a.some(_=> e.attr(_)!==undefined);
-        $('a').each(function() {
-          const $this = $(this);
-          if(hasAttr($this,["data-fancybox","ignore-external-link"])) return;
-          const href = $this.attr('href');
-          if (href && href.match('^((http|https|thunder|qqdl|ed2k|Flashget|qbrowser|ftp|rtsp|mms)://)')) {
-            const strs = href.split('/');
-            if (strs.length >= 3) {
-                const host = strs[2];
-                if (host !== 'your_domain' || window.location.host) {
-                    $this.attr('href', '/go.html?u='+Base64.encode(href)+'').attr('rel', 'external nofollow noopener noreferrer');
-                    if (true) {
-                        $this.attr('target', '_blank');
-                    }
-                }
-            }
-          }
-        });
-        </script></body>
+</body>
 
 </html>

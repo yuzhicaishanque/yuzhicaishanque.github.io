@@ -3,11 +3,11 @@
   <title>Hexo</title>
   
   
-  <link href="http://yuzhicaishanque.github.io/atom.xml" rel="self"/>
+  <link href="https://yuzhicaishanque.github.io/atom.xml" rel="self"/>
   
-  <link href="http://yuzhicaishanque.github.io/"/>
+  <link href="https://yuzhicaishanque.github.io/"/>
   <updated>2024-08-14T13:34:40.552Z</updated>
-  <id>http://yuzhicaishanque.github.io/</id>
+  <id>https://yuzhicaishanque.github.io/</id>
   
   <author>
     <name>John Doe</name>
@@ -18,8 +18,8 @@
   
   <entry>
     <title>Hello World</title>
-    <link href="http://yuzhicaishanque.github.io/2024/08/14/hello-world/"/>
-    <id>http://yuzhicaishanque.github.io/2024/08/14/hello-world/</id>
+    <link href="https://yuzhicaishanque.github.io/2024/08/14/hello-world/"/>
+    <id>https://yuzhicaishanque.github.io/2024/08/14/hello-world/</id>
     <published>2024-08-14T13:34:40.552Z</published>
     <updated>2024-08-14T13:34:40.552Z</updated>
     

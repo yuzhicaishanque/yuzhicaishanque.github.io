@@ -1,2 +1,9 @@
 http://yuzhicaishanque.github.io/2024/08/14/hello-world/
+http://yuzhicaishanque.github.io/404.html
+http://yuzhicaishanque.github.io/about/index.html
+http://yuzhicaishanque.github.io/categories/index.html
+http://yuzhicaishanque.github.io/books/index.html
+http://yuzhicaishanque.github.io/links/index.html
+http://yuzhicaishanque.github.io/repository/index.html
+http://yuzhicaishanque.github.io/tags/index.html
 http://yuzhicaishanque.github.io/

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <title>化工工具通用模板</title>
+    <title>化工工具</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.50.0/build/stlite.css" />
   </head>
   <body>
@@ -51,7 +51,13 @@ st.set_page_config(page_title="多釜串联实验数据处理", layout="wide", p
 
 # --- 绘图字体设置 ---
 import matplotlib.font_manager as fm
-plt.style.use('seaborn-v0_8-whitegrid')
+try:
+    plt.style.use('seaborn-v0_8-whitegrid')
+except:
+    try:
+        plt.style.use('seaborn-whitegrid')
+    except:
+        plt.style.use('default')
 plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'Arial']
 plt.rcParams['axes.unicode_minus'] = False 
 

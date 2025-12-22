@@ -278,7 +278,7 @@ if process_btn:
             st.pyplot(fig_comp)
             
         with tab2:
-            st.subheader("600 rpm 下各级反应釜分布对比")
+            st.subheader("600 rpm 各釜分布")
             col1, col2 = st.columns(2)
             cols = [col1, col2, col1, col2]
             targets = [('1号釜 (600 rpm)', 1), ('2号釜 (600 rpm)', 2),
@@ -288,16 +288,16 @@ if process_btn:
                 if key in results_cache:
                     with cols[i]:
                         d = results_cache[key]
-                        fig, ax = plt.subplots(figsize=(6, 4))
-                        ax.plot(d['t'], d['E'], label='实测值', lw=2)
-                        
+                        fig, ax = plt.subplots(figsize=(5, 3))
+                        ax.plot(d['t'], d['E'], label='实测')
                         t_ref = np.linspace(0, d['t'].max(), 500)
                         E_theo = get_theoretical_E(t_ref, d['stats']['t_mean'], theo_N)
-                        ax.plot(t_ref, E_theo, 'k--', label=f'理论 N={theo_N}')
+                        ax.plot(t_ref, E_theo, 'k--', label=f'理论N={theo_N}')
                         
-                        ax.set_title(f"{key}\n实测N={d['stats']['N_model']:.2f}")
-                        ax.legend()
-                        ax.grid(True, linestyle='--', alpha=0.6)
+                        # ▼▼▼ 重点是下面这一行，必须是一整行，不能断开 ▼▼▼
+                        ax.set_title(f"{key} (N={d['stats']['N_model']:.2f})", fontsize=10)
+                        
+                        ax.legend(fontsize=8)
                         st.pyplot(fig)
 
 # ==========================================

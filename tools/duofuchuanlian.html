@@ -4,19 +4,11 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <title>化工实验数据处理工具</title>
+    <title>化工原理实验数据处理工具 (Plotly极速版)</title>
     <link rel="stylesheet" href="https://registry.npmmirror.com/@stlite/mountable/0.50.0/files/build/stlite.css" />
     <style>
-      /* ✅ 优化2: 加载动画 */
-      #loader {
-        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        text-align: center; z-index: 9999;
-        font-family: sans-serif;
-      }
-      .spinner {
-        border: 6px solid #f3f3f3; border-top: 6px solid #00aeef; border-radius: 50%;
-        width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 15px auto;
-      }
+      #loader { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 9999; font-family: sans-serif; }
+      .spinner { border: 6px solid #f3f3f3; border-top: 6px solid #00aeef; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 15px auto; }
       @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
       .loading-text { color: #333; font-weight: bold; }
       .loading-sub { color: #888; font-size: 12px; margin-top: 5px; }
@@ -27,28 +19,26 @@
 
     <div id="loader">
       <div class="spinner"></div>
-      <div class="loading-text">🚀 正在装载 Python 引擎...</div>
-      <div class="loading-sub">首次运行较慢，后续秒开</div>
+      <div class="loading-text">🚀 正在加载 Plotly 引擎...</div>
+      <div class="loading-sub">无需下载字体，体积更小</div>
     </div>
 
     <script src="https://registry.npmmirror.com/@stlite/mountable/0.50.0/files/build/stlite.js"></script>
 
     <script>
       stlite.mount({
-        // ✅ 优化3: 去掉了 'scipy'，体积减小 40%
-        requirements: ["streamlit", "pandas", "numpy", "matplotlib", "xlsxwriter"],
+        // ✅ 核心修改：去掉 matplotlib，加入 plotly
+        requirements: ["streamlit", "pandas", "numpy", "plotly", "xlsxwriter"],
         entrypoint: "streamlit_app.py",
         files: {
-          files: {
           "streamlit_app.py": `
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm  # ✅ 引入字体管理
+import plotly.graph_objects as go # ✅ 引入 Plotly
+import plotly.express as px
 import math
 import io
-import os
 import warnings
 
 # --- 兼容性设置 ---
@@ -59,52 +49,10 @@ else:
 
 warnings.filterwarnings('ignore')
 
-# ==========================================
-# 🅰️ 核心修复：加载中文字体
-# ==========================================
-@st.cache_resource  # 使用缓存，避免每次刷新都重新下载
-def load_chinese_font():
-    # 字体文件名
-    font_name = "simhei.ttf"
-    
-    # 1. 检查是否已经存在 (因为 pyodide 是虚拟文件系统)
-    if not os.path.exists(font_name):
-        # 如果不存在，通过 open_url 读取当前目录下的字体文件
-        # 注意：这里假设 simhei.ttf 就在网页的同一级目录下
-        from pyodide.http import open_url
-        try:
-            # 下载字体到虚拟内存
-            with open_url(font_name) as f:
-                content = f.read()
-            # 写入虚拟文件系统
-            with open(font_name, "wb") as f:
-                f.write(content)
-        except Exception as e:
-            st.error(f"字体加载失败: {e}")
-            return None
-
-    # 2. 注册字体
-    if os.path.exists(font_name):
-        fm.fontManager.addfont(font_name)
-        # 获取注册后的字体对象
-        prop = fm.FontProperties(fname=font_name)
-        # 设置全局默认字体
-        plt.rcParams['font.family'] = prop.get_name()
-        plt.rcParams['axes.unicode_minus'] = False # 解决负号显示问题
-        return prop
-    return None
-
-# 执行加载字体
-chinese_font = load_chinese_font()
-
-# ==========================================
-# 🅱️ 核心逻辑 (保持不变)
-# ==========================================
-
+# --- 页面配置 ---
 st.set_page_config(page_title="多釜串联处理", layout="wide", page_icon="⚗️")
 
-# ... (省略中间的数据处理函数 get_theoretical_E, process_uploaded_file 等，保持原样即可) ...
-
+# --- 核心算法 ---
 def get_theoretical_E(t, tau, N):
     if N < 1: N = 1
     if tau == 0: return np.zeros_like(t)
@@ -174,13 +122,11 @@ def process_uploaded_file(uploaded_file, col_target, label):
     return sampled, t_arr, E_t, stats
 
 # --- 界面部分 ---
-st.title("⚗️ 多釜串联数据处理 (中文化修复版)")
-
-if not chinese_font:
-    st.warning("⚠️ 未检测到中文字体文件 (simhei.ttf)，图表中文可能无法显示。请确保将 ttf 文件放在同目录下。")
+st.title("⚗️ 多釜串联数据处理 (交互图表版)")
+st.caption("使用 Plotly 引擎：无需下载字体，原生支持中文，支持缩放/悬停查看数据")
 
 with st.sidebar:
-    st.header("⚙️ 参数")
+    st.header("⚙️ 参数设置")
     vol_input = st.number_input("体积 V (mL)", value=1040.0)
     flow_input = st.number_input("流量 Q (mL/min)", value=225.0)
     if flow_input != 0:
@@ -189,7 +135,7 @@ with st.sidebar:
         theo_tau = 0
     st.info(f"τ = {theo_tau:.2f} s")
     st.divider()
-    st.header("📂 数据")
+    st.header("📂 数据上传")
     file_600 = st.file_uploader("600 rpm (必填)", type=['csv'])
     file_300 = st.file_uploader("300 rpm (可选)", type=['csv'])
     file_0 = st.file_uploader("0 rpm (可选)", type=['csv'])
@@ -222,31 +168,68 @@ if process_btn:
             
             results_cache[label] = {'t': t_full, 'E': E_full, 'stats': stats}
             
-            # Excel 写入简略版
+            # Excel 导出
             summary = pd.DataFrame([['N_model', f"{stats['N_model']:.2f}"], ['Variance', f"{stats['variance']:.2f}"]])
             sampled.to_excel(writer, sheet_name=sheet, index=False)
             summary.to_excel(writer, sheet_name=sheet, startcol=6, index=False)
 
         writer.close()
         st.success("✅ 处理完成")
-        st.download_button("📥 下载 Excel", data=output.getvalue(), file_name="result.xlsx")
+        st.download_button("📥 下载 Excel 报表", data=output.getvalue(), file_name="result.xlsx")
 
-        st.subheader("📊 结果预览")
-        tab1, tab2 = st.tabs(["转速对比", "详细分布"])
+        st.subheader("📊 交互式结果预览")
+        tab1, tab2 = st.tabs(["⚡ 转速对比 (图5)", "📈 详细模型拟合"])
         
+        # --- ✅ Plotly 绘图逻辑 ---
+        
+# --- 定义一个通用的下载配置 (关键修改) ---
+        # scale=3 表示下载 3 倍高清图，适合打印和 Word 报告
+        dl_config = {
+            'toImageButtonOptions': {
+                'format': 'png',        # 下载格式: png, svg, jpeg, webp
+                'filename': '实验图表', # 下载的文件名
+                'height': 600,
+                'width': 800,
+                'scale': 3              # 🔍 关键！3倍清晰度，告别模糊
+            },
+            'displayModeBar': True,     # 强制显示工具栏
+            'displaylogo': False,       # 隐藏 Plotly 的 logo，更干净
+            # 只保留下载、缩放、平移等有用按钮
+            'modeBarButtonsToRemove': ['lasso2d', 'select2d'] 
+        }
+
         with tab1:
-            fig, ax = plt.subplots(figsize=(8, 4))
-            for k, v in results_cache.items():
-                if "1号釜" in k:
-                    ax.plot(v['t'], v['E'], label=k)
-            # ✅ 修复：添加坐标轴标签
-            ax.set_xlabel("时间 t (s)", fontsize=12)
-            ax.set_ylabel("E(t) 分布", fontsize=12)
-            ax.legend()
-            st.pyplot(fig)
+            fig = go.Figure()
+            colors = {'600': '#1f77b4', '300': '#ff7f0e', '0': '#d62728'}
+            max_t = 0
+            
+            for rpm in ['600', '300', '0']:
+                key = f'1号釜 ({rpm} rpm)'
+                if key in results_cache:
+                    d = results_cache[key]
+                    fig.add_trace(go.Scatter(x=d['t'], y=d['E'], mode='lines', 
+                                           name=f'{rpm} rpm 实测', line=dict(color=colors[rpm], width=2)))
+                    max_t = max(max_t, d['t'].max())
+            
+            if max_t > 0:
+                t_ref = np.linspace(0, max_t, 500)
+                E_ref = get_theoretical_E(t_ref, theo_tau, 1)
+                fig.add_trace(go.Scatter(x=t_ref, y=E_ref, mode='lines', 
+                                       name='理论全混流 (N=1)', line=dict(color='black', dash='dash', width=1.5)))
+
+            fig.update_layout(
+                title="<b>1号釜不同转速下 E(t) 曲线对比</b>", # 加粗标题
+                xaxis_title="<b>时间 t (s)</b>",
+                yaxis_title="<b>E(t) 分布</b>",
+                hovermode="x unified",
+                template="simple_white", # 使用更适合打印的白底黑线模板
+                legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99, bgcolor="rgba(255,255,255,0.8)")
+            )
+            # ✅ 应用下载配置
+            st.plotly_chart(fig, use_container_width=True, config=dl_config)
             
         with tab2:
-            st.subheader("600 rpm 各釜分布")
+            st.markdown("##### 🔍 各级釜实测数据与理论模型对比")
             col1, col2 = st.columns(2)
             cols = [col1, col2, col1, col2]
             targets = [('1号釜 (600 rpm)', 1), ('2号釜 (600 rpm)', 2),
@@ -256,23 +239,29 @@ if process_btn:
                 if key in results_cache:
                     with cols[i]:
                         d = results_cache[key]
-                        fig, ax = plt.subplots(figsize=(5, 3))
-                        ax.plot(d['t'], d['E'], label='实测')
+                        fig = go.Figure()
+                        
+                        fig.add_trace(go.Scatter(x=d['t'], y=d['E'], mode='lines', name='实测值', line=dict(width=2)))
+                        
                         t_ref = np.linspace(0, d['t'].max(), 500)
                         E_theo = get_theoretical_E(t_ref, d['stats']['t_mean'], theo_N)
-                        ax.plot(t_ref, E_theo, 'k--', label=f'理论N={theo_N}')
+                        fig.add_trace(go.Scatter(x=t_ref, y=E_theo, mode='lines', 
+                                               name=f'理论N={theo_N}', line=dict(dash='dash', color='black', width=1.5)))
                         
-                        ax.set_title(f"{key} (N={d['stats']['N_model']:.2f})", fontsize=10)
-                        # ✅ 修复：添加坐标轴标签
-                        ax.set_xlabel("时间 t (s)")
-                        ax.set_ylabel("E(t)")
-                        
-                        ax.legend(fontsize=8)
-                        st.pyplot(fig)
+                        fig.update_layout(
+                            title=f"<b>{key}</b> (N={d['stats']['N_model']:.2f})",
+                            xaxis_title="时间 (s)",
+                            yaxis_title="E(t)",
+                            margin=dict(l=40, r=20, t=40, b=40),
+                            height=350,
+                            template="simple_white",
+                            legend=dict(x=0.65, y=0.95, bgcolor="rgba(255,255,255,0.5)")
+                        )
+                        # ✅ 应用下载配置 (每个小图都有下载按钮)
+                        st.plotly_chart(fig, use_container_width=True, config=dl_config)
 `
         },
       }, document.getElementById("root")).then(() => {
-        // 隐藏加载动画
         document.getElementById("loader").style.display = "none";
       });
     </script>

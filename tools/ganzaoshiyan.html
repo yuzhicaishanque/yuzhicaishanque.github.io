@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>干燥实验数据处理 (高精度插值版)</title>
+    
+    <script src="https://cdn.staticfile.org/plotly.js/2.24.1/plotly.min.js"></script>
+    <script src="https://cdn.staticfile.org/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.staticfile.org/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        /* 保持原有清爽风格 */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 0; background-color: #f3f4f6; display: flex; height: 100vh; overflow: hidden; }
+        
+        .sidebar { width: 320px; background: white; padding: 25px; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 4px 0 24px rgba(0,0,0,0.02); z-index: 10; }
+        .sidebar h2 { font-size: 1.2rem; color: #111827; border-bottom: 2px solid #3b82f6; padding-bottom: 12px; margin-bottom: 24px; font-weight: 700; }
+        
+        .section-title { font-size: 0.85rem; font-weight: 700; color: #6b7280; margin-top: 15px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; border-left: 3px solid #3b82f6; padding-left: 8px; }
+
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.85rem; color: #374151; }
+        .input-group input[type="number"] {
+            width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; transition: all 0.2s; background: #f9fafb;
+        }
+        .input-group input:focus { outline: none; border-color: #3b82f6; background: white; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        
+        /* 双列输入布局 */
+        .input-row { display: flex; gap: 10px; }
+        .input-row input { width: 50%; }
+
+        .file-upload { margin-bottom: 20px; padding: 15px; background: #eff6ff; border: 2px dashed #93c5fd; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .file-upload:hover { border-color: #3b82f6; background: #e0f2fe; }
+        .file-upload span { color: #2563eb; font-size: 0.9rem; font-weight: 500; }
+        
+        .btn-primary { background-color: #3b82f6; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-size: 0.95rem; font-weight: 600; width: 100%; transition: background 0.2s; margin-top: 20px; box-shadow: 0 2px 4px rgba(59,130,246,0.3); }
+        .btn-primary:hover { background-color: #2563eb; transform: translateY(-1px); }
+
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #f9fafb; }
+        
+        .tabs { display: flex; background: white; border-bottom: 1px solid #e5e7eb; padding: 0 30px; }
+        .tab { padding: 16px 24px; cursor: pointer; color: #6b7280; font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.2s; font-size: 0.95rem; }
+        .tab:hover { color: #3b82f6; }
+        .tab.active { color: #3b82f6; border-bottom-color: #3b82f6; }
+        
+        .content-area { flex: 1; padding: 30px; overflow-y: auto; display: none; }
+        .content-area.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid #f3f4f6; position: relative; overflow: hidden; }
+        .stat-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #3b82f6; }
+        .stat-card h3 { margin: 0 0 8px 0; color: #6b7280; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
+        .stat-card .value { font-size: 1.75rem; font-weight: 700; color: #111827; }
+        .stat-card .unit { font-size: 0.8rem; color: #9ca3af; margin-top: 4px; }
+        .stat-card.highlight::before { background: #f59e0b; }
+        .stat-card.highlight .value { color: #d97706; }
+
+        .chart-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); margin-bottom: 24px; height: 500px; border: 1px solid #e5e7eb; }
+        
+        table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; font-size: 0.9rem; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #f3f4f6; }
+        th { background-color: #f9fafb; font-weight: 600; color: #374151; position: sticky; top: 0; z-index: 5; }
+        tr:hover { background-color: #f9fafb; }
+        
+        .info-box { background-color: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 16px; border-radius: 8px; margin-bottom: 24px; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>干燥实验分析</h2>
+        
+        <div class="file-upload" onclick="document.getElementById('csvFile').click()">
+            <span id="fileName">📂 点击上传 CSV / Excel</span>
+            <input type="file" id="csvFile" accept=".csv, .xls, .xlsx" style="display:none">
+        </div>
+
+        <div class="section-title">基础参数</div>
+        <div class="input-group">
+            <label>皮重 / 夹子 (g)</label>
+            <input type="number" id="tareWeight" value="90.8" step="0.1">
+        </div>
+        <div class="input-group">
+            <label>绝干物料 G' (g)</label>
+            <input type="number" id="dryWeight" value="26.5" step="0.1">
+        </div>
+        <div class="input-group">
+            <label>干燥面积 A (cm²)</label>
+            <input type="number" id="area" value="282.2" step="0.1">
+        </div>
+        
+        <div class="section-title">温度参数 (℃)</div>
+        <div class="input-row">
+            <div class="input-group" style="width: 50%;">
+                <label>干球 Td</label>
+                <input type="number" id="tDry" value="61.2" step="0.1">
+            </div>
+            <div class="input-group" style="width: 50%;">
+                <label>湿球 Tw</label>
+                <input type="number" id="tWet" value="27.6" step="0.1">
+            </div>
+        </div>
+
+        <div class="section-title">汽化热文献插值 (J/mol)</div>
+        <div class="input-group">
+            <label>文献点 1 (温度 / 焓值)</label>
+            <div class="input-row">
+                <input type="number" id="refT1" value="26" placeholder="℃">
+                <input type="number" id="refH1" value="43635" placeholder="J/mol">
+            </div>
+        </div>
+        <div class="input-group">
+            <label>文献点 2 (温度 / 焓值)</label>
+            <div class="input-row">
+                <input type="number" id="refT2" value="28" placeholder="℃">
+                <input type="number" id="refH2" value="43760" placeholder="J/mol">
+            </div>
+        </div>
+
+        <button class="btn-primary" onclick="processData()">▶ 重新计算</button>
+    </div>
+
+    <div class="main-content">
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('report')">📊 分析报告</div>
+            <div class="tab" onclick="switchTab('charts')">📈 图表详情</div>
+            <div class="tab" onclick="switchTab('data')">📋 原始数据</div>
+        </div>
+
+        <div id="report" class="content-area active">
+            <div class="info-box">
+                <span id="statusMsg">👋 请先上传实验数据文件。</span>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card highlight">
+                    <h3>临界含水量 (Xc)</h3>
+                    <div class="value" id="val_xc">-</div>
+                    <div class="unit">kg水/kg干料</div>
+                </div>
+                <div class="stat-card">
+                    <h3>恒速干燥速率 (Uc)</h3>
+                    <div class="value" id="val_uc">-</div>
+                    <div class="unit">×10⁻⁴ kg/(s·m²)</div>
+                </div>
+                <div class="stat-card">
+                    <h3>对流传热系数 (α)</h3>
+                    <div class="value" id="val_alpha">-</div>
+                    <div class="unit">W/(m²·K)</div>
+                </div>
+                <div class="stat-card">
+                    <h3>恒速段时间 (tc)</h3>
+                    <div class="value" id="val_tc">-</div>
+                    <div class="unit">min</div>
+                </div>
+                <div class="stat-card">
+                    <h3>插值汽化热 (r)</h3>
+                    <div class="value" id="val_r">-</div>
+                    <div class="unit">kJ/kg (基于插值)</div>
+                </div>
+                <div class="stat-card">
+                    <h3>降速段斜率</h3>
+                    <div class="value" id="val_m">-</div>
+                    <div class="unit">Slope</div>
+                </div>
+            </div>
+
+            <div class="chart-container" id="chart_rate_mini" style="height: 420px;"></div>
+        </div>
+
+        <div id="charts" class="content-area">
+            <div class="chart-container" id="chart_rate"></div>
+            <div class="chart-container" id="chart_drying"></div>
+        </div>
+
+        <div id="data" class="content-area">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>时间 (min)</th>
+                        <th>总重量 (g)</th>
+                        <th>含水量 X</th>
+                        <th>平均 Xavg</th>
+                        <th>速率 U (10⁻⁴)</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let rawData = [];
+        let processedData = [];
+        let analysisResults = {};
+
+        // 摩尔质量 (kg/mol)
+        const MOLAR_MASS_WATER = 0.01801528;
+
+        document.getElementById('csvFile').addEventListener('change', handleFileSelect);
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.content-area').forEach(c => c.classList.remove('active'));
+            
+            const idx = ['report', 'charts', 'data'].indexOf(tabId);
+            document.querySelectorAll('.tab')[idx].classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+            
+            if(tabId === 'charts') {
+                Plotly.relayout('chart_rate', {autosize: true});
+                Plotly.relayout('chart_drying', {autosize: true});
+            } else if(tabId === 'report') {
+                Plotly.relayout('chart_rate_mini', {autosize: true});
+            }
+        }
+
+        function handleFileSelect(evt) {
+            const file = evt.target.files[0];
+            if (!file) return;
+            document.getElementById('fileName').textContent = "📄 " + file.name;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = e.target.result;
+                if(file.name.match(/\.xls|\.xlsx/)) {
+                    try {
+                        const wb = XLSX.read(data, {type: 'binary'});
+                        const sheet = wb.Sheets[wb.SheetNames[0]];
+                        parseRawData(XLSX.utils.sheet_to_json(sheet, {header: 1}));
+                    } catch(err) { alert("Excel 读取失败: " + err); }
+                } else {
+                    Papa.parse(file, { complete: res => parseRawData(res.data) });
+                }
+            };
+            file.name.match(/\.xls|\.xlsx/) ? reader.readAsBinaryString(file) : reader.readAsText(file);
+        }
+
+        function parseRawData(rows) {
+            let headerIdx = -1;
+            for(let i=0; i<rows.length; i++) {
+                const s = JSON.stringify(rows[i]);
+                if(s.includes('时间') || s.includes('总重量')) { headerIdx = i; break; }
+            }
+            if(headerIdx === -1) return alert("未找到包含[时间]或[总重量]的表头行");
+
+            const headers = rows[headerIdx].map(x => (x||'').toString());
+            const idxT = headers.findIndex(h => h.includes('时间'));
+            const idxW = headers.findIndex(h => h.includes('总重量'));
+
+            rawData = [];
+            for(let i = headerIdx+1; i < rows.length; i++) {
+                const row = rows[i];
+                if(row && row.length > 1) {
+                    const t = parseFloat(row[idxT]);
+                    const w = parseFloat(row[idxW]);
+                    if(!isNaN(t) && !isNaN(w)) rawData.push({t, w});
+                }
+            }
+            rawData.sort((a,b) => a.t - b.t);
+            processData();
+            
+            const msg = document.getElementById('statusMsg');
+            msg.innerText = "✅ 数据分析完成。使用了自定义汽化热插值。";
+            msg.style.color = "#059669";
+            msg.parentElement.style.backgroundColor = "#ecfdf5";
+            msg.parentElement.style.borderColor = "#a7f3d0";
+        }
+
+        function processData() {
+            if(!rawData.length) return;
+
+            // 1. 读取基础参数
+            const P = {
+                tare: parseFloat(document.getElementById('tareWeight').value),
+                dry: parseFloat(document.getElementById('dryWeight').value),
+                area: parseFloat(document.getElementById('area').value) / 10000,
+                Td: parseFloat(document.getElementById('tDry').value),
+                Tw: parseFloat(document.getElementById('tWet').value),
+                // 文献数据
+                T1: parseFloat(document.getElementById('refT1').value),
+                H1: parseFloat(document.getElementById('refH1').value), // J/mol
+                T2: parseFloat(document.getElementById('refT2').value),
+                H2: parseFloat(document.getElementById('refH2').value)  // J/mol
+            };
+
+            processedData = [];
+            
+            // 2. 计算含水量 X 和 速率 U
+            for(let i=0; i<rawData.length; i++) {
+                rawData[i].X = (rawData[i].w - P.tare - P.dry) / P.dry;
+            }
+            for(let i=0; i<rawData.length-1; i++) {
+                const p1 = rawData[i], p2 = rawData[i+1];
+                const dt = p2.t - p1.t;
+                if(dt <= 0) continue;
+                
+                const dW_kg = (p2.w - p1.w) / 1000;
+                const dt_s = dt * 60;
+                const rate_si = -(dW_kg / dt_s) / P.area;
+                
+                processedData.push({
+                    t_mid: (p1.t+p2.t)/2,
+                    X_avg: (p1.X+p2.X)/2,
+                    U_si: rate_si,
+                    U_scaled: rate_si * 10000
+                });
+            }
+
+            // 3. 拟合逻辑
+            let fitData = [...processedData].sort((a,b) => a.X_avg - b.X_avg);
+            let res = { error: Infinity, Xc: 0, Uc: 0, m: 0, c: 0 };
+            
+            for(let k=3; k<fitData.length-3; k++) {
+                const segFall = fitData.slice(0, k+1);
+                const segConst = fitData.slice(k+1);
+
+                const meanU = segConst.reduce((s,x)=>s+x.U_scaled,0)/segConst.length;
+                const errConst = segConst.reduce((s,x)=>s+(x.U_scaled-meanU)**2, 0);
+
+                const reg = linReg(segFall.map(d=>d.X_avg), segFall.map(d=>d.U_scaled));
+                const errFall = segFall.reduce((s,x)=>s+(x.U_scaled-(reg.m*x.X_avg+reg.c))**2, 0);
+
+                if(errConst+errFall < res.error) {
+                    res = { error: errConst+errFall, Xc: (meanU-reg.c)/reg.m, Uc: meanU, m: reg.m, c: reg.c };
+                }
+            }
+
+            // 4. 计算汽化热 (基于用户输入插值)
+            // 线性插值公式: H = H1 + (Tw - T1) * (H2 - H1) / (T2 - T1)
+            let H_mol = 0;
+            if (P.T1 === P.T2) {
+                H_mol = P.H1; // 避免除以零
+            } else {
+                H_mol = P.H1 + (P.Tw - P.T1) * (P.H2 - P.H1) / (P.T2 - P.T1);
+            }
+            
+            // 转换为 J/kg: (J/mol) / (kg/mol)
+            const r_val_jkg = H_mol / MOLAR_MASS_WATER;
+            
+            // 5. 计算 alpha & tc
+            const deltaT = P.Td - P.Tw;
+            const alpha = deltaT > 0 ? (res.Uc * 1e-4 * r_val_jkg / deltaT) : 0;
+            
+            let tc = 0;
+            if(rawData[0].X > res.Xc) {
+                tc = (P.dry/1000 * (rawData[0].X - res.Xc)) / (res.Uc*1e-4 * P.area) / 60;
+            }
+
+            analysisResults = { ...res, alpha, tc, r_kj: r_val_jkg/1000 };
+            updateUI();
+        }
+
+        function linReg(x, y) {
+            const n = x.length;
+            let sx=0, sy=0, sxy=0, sxx=0;
+            for(let i=0; i<n; i++) { sx+=x[i]; sy+=y[i]; sxy+=x[i]*y[i]; sxx+=x[i]*x[i]; }
+            const m = (n*sxy - sx*sy)/(n*sxx - sx*sx);
+            return { m, c: (sy - m*sx)/n };
+        }
+
+        function updateUI() {
+            const R = analysisResults;
+            const setVal = (id, v, fix=2) => document.getElementById(id).innerText = isFinite(v) ? v.toFixed(fix) : '-';
+            
+            setVal('val_xc', R.Xc, 4);
+            setVal('val_uc', R.Uc, 3);
+            setVal('val_alpha', R.alpha, 2);
+            setVal('val_tc', R.tc, 2);
+            setVal('val_r', R.r_kj, 1);
+            setVal('val_m', R.m, 2);
+
+            const tbody = document.querySelector('#dataTable tbody');
+            tbody.innerHTML = rawData.map((d, i) => {
+                const u = i < processedData.length ? processedData[i].U_scaled.toFixed(3) : '-';
+                const xa = i < processedData.length ? processedData[i].X_avg.toFixed(4) : '-';
+                return `<tr><td>${i+1}</td><td>${d.t}</td><td>${d.w}</td><td>${d.X.toFixed(4)}</td><td>${xa}</td><td>${u}</td></tr>`;
+            }).join('');
+
+            plotCharts();
+        }
+
+        function plotCharts() {
+            const R = analysisResults;
+            const maxU = Math.max(...processedData.map(d=>d.U_scaled));
+            const yRange = [0, maxU * 1.2];
+
+            const tracePoints = {
+                x: processedData.map(d => d.X_avg),
+                y: processedData.map(d => d.U_scaled),
+                mode: 'markers', name: '实验点',
+                marker: { color: '#3b82f6', size: 8 }
+            };
+
+            const lineX = [], lineY = [];
+            const xMaxPlot = Math.max(...processedData.map(d=>d.X_avg)) * 1.1;
+            for(let i=0; i<=100; i++) {
+                const x = i * xMaxPlot / 100;
+                lineX.push(x);
+                lineY.push(x < R.Xc ? R.m*x + R.c : R.Uc);
+            }
+            
+            const traceLine = { x: lineX, y: lineY, mode: 'lines', name: '拟合曲线', line: {color:'#ef4444', width:2, dash:'dash'} };
+            const traceXc = { x: [R.Xc, R.Xc], y: [0, maxU*1.5], mode: 'lines', name: '临界点 Xc', line: {color:'#10b981', dash:'dot'} };
+
+            const layoutRate = {
+                title: '干燥速率曲线',
+                xaxis: { title: '含水量 X (kg/kg)' },
+                yaxis: { title: '干燥速率 U (×10⁻⁴)', range: yRange },
+                margin: { t:40, l:50, r:20, b:40 },
+                hovermode: 'closest',
+                showlegend: true, legend: {x:0.7, y:0.1}
+            };
+
+            Plotly.newPlot('chart_rate', [tracePoints, traceLine, traceXc], layoutRate);
+            Plotly.newPlot('chart_rate_mini', [tracePoints, traceLine, traceXc], {...layoutRate, title:''});
+
+            const traceDrying = {
+                x: rawData.map(d=>d.t), y: rawData.map(d=>d.X),
+                mode: 'lines+markers', name: '含水量', line: {color:'#1d4ed8'}
+            };
+            const traceTc = { x:[R.tc, R.tc], y:[0, Math.max(...rawData.map(d=>d.X))], mode:'lines', name:'恒速时间 tc', line:{color:'#f59e0b', dash:'dash'} };
+            
+            Plotly.newPlot('chart_drying', [traceDrying, traceTc], {
+                title: '干燥曲线 (X - t)',
+                xaxis: { title: '时间 (min)' }, yaxis: { title: '含水量 X' },
+                margin: { t:40, l:50, r:20, b:40 }
+            });
+        }
+    </script>
+</body>
+</html>

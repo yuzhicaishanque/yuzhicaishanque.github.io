@@ -86,7 +86,7 @@
             <input type="number" id="dryWeight" value="26.5" step="0.1">
         </div>
         <div class="input-group">
-            <label>干燥面积 A (cm²)</label>
+            <label>干燥面积 S (cm²)</label>
             <input type="number" id="area" value="282.2" step="0.1">
         </div>
         
@@ -103,7 +103,7 @@
         </div>
 
         <div class="section-title">
-            汽化热文献插值
+            汽化热文献插值求湿球温度对应汽化热
         </div>
         <div class="input-group">
             <label>单位选择</label>
@@ -145,12 +145,12 @@
 
             <div class="stats-grid">
                 <div class="stat-card highlight">
-                    <h3>临界含水量 (Xc)</h3>
+                    <h3>临界含水量 (X<sub>c</sub>)</h3>
                     <div class="value" id="val_xc">-</div>
                     <div class="unit">kg水/kg干料</div>
                 </div>
                 <div class="stat-card">
-                    <h3>恒速干燥速率 (Uc)</h3>
+                    <h3>恒速干燥速率 (U<sub>c</sub>)</h3>
                     <div class="value" id="val_uc">-</div>
                     <div class="unit">×10⁻⁴ kg/(s·m²)</div>
                 </div>
@@ -160,7 +160,7 @@
                     <div class="unit">W/(m²·K)</div>
                 </div>
                 <div class="stat-card">
-                    <h3>恒速段时间 (tc)</h3>
+                    <h3>恒速段时间 (t<sub>c</sub>)</h3>
                     <div class="value" id="val_tc">-</div>
                     <div class="unit">min</div>
                 </div>
@@ -189,11 +189,11 @@
                 <thead>
                     <tr>
                         <th>序号</th>
-                        <th>时间 (min)</th>
-                        <th>总重量 (g)</th>
-                        <th>含水量 X</th>
-                        <th>平均 Xavg</th>
-                        <th>速率 U (10⁻⁴)</th>
+                        <th>时间 t (min)</th>
+                        <th>总重量 G (g)</th>
+                        <th>干基含水量 X (kg/kg)</th>
+                        <th>平均含水量 X<sub>avg</sub> (kg/kg)</th>
+                        <th>速率 U (10⁻⁴kg/(s·m²))</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -389,7 +389,7 @@
             
             const traceLine = { 
                 x: lineX, y: lineY, mode: 'lines', 
-                name: `拟合模型 (Xc=${R.Xc.toFixed(3)})`, 
+                name: `拟合曲线`, 
                 line: {color:'#ef4444', width:2, dash:'dash'} 
             };
             const traceXc = { 
@@ -415,7 +415,7 @@
                 ...layoutLegend,
                 title: '干燥速率曲线',
                 xaxis: { title: '含水量 X (kg/kg)' },
-                yaxis: { title: '干燥速率 U (×10⁻⁴)', range: yRange },
+                yaxis: { title: '干燥速率 U (10⁻⁴kg/(s·m²))', range: yRange },
                 margin: { t:40, l:50, r:30, b:40 },
                 hovermode: 'closest'
             };
@@ -431,15 +431,15 @@
             const traceTc = { 
                 x:[R.tc, R.tc], y:[0, Math.max(...rawData.map(d=>d.X))], 
                 mode:'lines', 
-                name: `恒速时间 (${R.tc.toFixed(1)} min)`, 
+                name: `恒速时间`, 
                 line:{color:'#f59e0b', dash:'dash'} 
             };
             
             const layoutTime = {
                 ...layoutLegend,
                 title: '干燥曲线 (X - t)',
-                xaxis: { title: '时间 (min)' }, 
-                yaxis: { title: '含水量 X' },
+                xaxis: { title: '时间 t (min)' }, 
+                yaxis: { title: '含水量 X (kg/kg)' },
                 margin: { t:40, l:50, r:30, b:40 }
             };
 

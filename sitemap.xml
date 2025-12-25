@@ -4,7 +4,7 @@
   <url>
     <loc>https://yuzhicaishanque.github.io/lab/index.html</loc>
     
-    <lastmod>2025-12-22</lastmod>
+    <lastmod>2025-12-25</lastmod>
     
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -74,24 +74,6 @@
   </url>
   
   <url>
-    <loc>https://yuzhicaishanque.github.io/books/index.html</loc>
-    
-    <lastmod>2022-03-21</lastmod>
-    
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://yuzhicaishanque.github.io/links/index.html</loc>
-    
-    <lastmod>2022-03-21</lastmod>
-    
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
     <loc>https://yuzhicaishanque.github.io/404.html</loc>
     
     <lastmod>2022-03-21</lastmod>
@@ -102,6 +84,24 @@
   
   <url>
     <loc>https://yuzhicaishanque.github.io/categories/index.html</loc>
+    
+    <lastmod>2022-03-21</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://yuzhicaishanque.github.io/books/index.html</loc>
+    
+    <lastmod>2022-03-21</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://yuzhicaishanque.github.io/links/index.html</loc>
     
     <lastmod>2022-03-21</lastmod>
     
@@ -137,13 +137,6 @@
 
   
   <url>
-    <loc>https://yuzhicaishanque.github.io/tags/%E5%AD%A6%E4%B9%A0/</loc>
-    <lastmod>2025-12-25</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
     <loc>https://yuzhicaishanque.github.io/tags/%E7%94%9F%E6%B4%BB/</loc>
     <lastmod>2025-12-25</lastmod>
     <changefreq>weekly</changefreq>
@@ -152,6 +145,13 @@
   
   <url>
     <loc>https://yuzhicaishanque.github.io/tags/%E5%8C%96%E5%B7%A5/</loc>
+    <lastmod>2025-12-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://yuzhicaishanque.github.io/tags/%E5%AD%A6%E4%B9%A0/</loc>
     <lastmod>2025-12-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>

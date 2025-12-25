@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>干燥实验数据处理 (悬浮图例版)</title>
+    <title>干燥实验数据处理</title>
     
     <script src="https://cdn.staticfile.org/plotly.js/2.24.1/plotly.min.js"></script>
     <script src="https://cdn.staticfile.org/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -99,7 +99,7 @@
         </div>
 
         <div class="section-title">
-            汽化热文献插值
+            汽化热文献插值求湿球温度对应汽化热
         </div>
         <div class="input-group">
             <label>单位选择</label>
@@ -385,7 +385,7 @@
             
             const traceLine = { 
                 x: lineX, y: lineY, mode: 'lines', 
-                name: `拟合模型 (Xc=${R.Xc.toFixed(3)})`, 
+                name: `拟合曲线`, 
                 line: {color:'#ef4444', width:2, dash:'dash'} 
             };
             const traceXc = { 
@@ -412,7 +412,7 @@
                 ...layoutLegend,
                 title: '干燥速率曲线',
                 xaxis: { title: '含水量 X (kg/kg)' },
-                yaxis: { title: '干燥速率 U (×10⁻⁴)', range: yRange },
+                yaxis: { title: '干燥速率 U (×10⁻⁴kg/kg·min)', range: yRange },
                 margin: { t:40, l:50, r:30, b:40 },
                 hovermode: 'closest'
             };
@@ -428,7 +428,7 @@
             const traceTc = { 
                 x:[R.tc, R.tc], y:[0, Math.max(...rawData.map(d=>d.X))], 
                 mode:'lines', 
-                name: `恒速时间 (${R.tc.toFixed(1)} min)`, 
+                name: `恒速时间`, 
                 line:{color:'#f59e0b', dash:'dash'} 
             };
             

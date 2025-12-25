@@ -3,32 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>干燥实验数据处理 (高精度插值版)</title>
+    <title>干燥实验数据处理 (多单位插值版)</title>
     
     <script src="https://cdn.staticfile.org/plotly.js/2.24.1/plotly.min.js"></script>
     <script src="https://cdn.staticfile.org/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.staticfile.org/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
-        /* 保持原有清爽风格 */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 0; background-color: #f3f4f6; display: flex; height: 100vh; overflow: hidden; }
         
-        .sidebar { width: 320px; background: white; padding: 25px; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 4px 0 24px rgba(0,0,0,0.02); z-index: 10; }
-        .sidebar h2 { font-size: 1.2rem; color: #111827; border-bottom: 2px solid #3b82f6; padding-bottom: 12px; margin-bottom: 24px; font-weight: 700; }
+        .sidebar { width: 340px; background: white; padding: 25px; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 4px 0 24px rgba(0,0,0,0.02); z-index: 10; }
+        .sidebar h2 { font-size: 1.2rem; color: #111827; border-bottom: 2px solid #3b82f6; padding-bottom: 12px; margin-bottom: 20px; font-weight: 700; }
         
-        .section-title { font-size: 0.85rem; font-weight: 700; color: #6b7280; margin-top: 15px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; border-left: 3px solid #3b82f6; padding-left: 8px; }
-
+        .section-title { font-size: 0.85rem; font-weight: 700; color: #4b5563; margin-top: 20px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; border-left: 3px solid #3b82f6; padding-left: 8px; display: flex; align-items: center; justify-content: space-between; }
+        
         .input-group { margin-bottom: 12px; }
         .input-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.85rem; color: #374151; }
-        .input-group input[type="number"] {
-            width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; transition: all 0.2s; background: #f9fafb;
+        .input-group input[type="number"], .input-group select {
+            width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; transition: all 0.2s; background: #f9fafb; box-sizing: border-box;
         }
-        .input-group input:focus { outline: none; border-color: #3b82f6; background: white; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .input-group input:focus, .input-group select:focus { outline: none; border-color: #3b82f6; background: white; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
         
-        /* 双列输入布局 */
         .input-row { display: flex; gap: 10px; }
-        .input-row input { width: 50%; }
-
+        
         .file-upload { margin-bottom: 20px; padding: 15px; background: #eff6ff; border: 2px dashed #93c5fd; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; }
         .file-upload:hover { border-color: #3b82f6; background: #e0f2fe; }
         .file-upload span { color: #2563eb; font-size: 0.9rem; font-weight: 500; }
@@ -52,9 +49,11 @@
         .stat-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #3b82f6; }
         .stat-card h3 { margin: 0 0 8px 0; color: #6b7280; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
         .stat-card .value { font-size: 1.75rem; font-weight: 700; color: #111827; }
-        .stat-card .unit { font-size: 0.8rem; color: #9ca3af; margin-top: 4px; }
+        .stat-card .unit { font-size: 0.8rem; color: #9ca3af; margin-top: 4px; display: block; }
         .stat-card.highlight::before { background: #f59e0b; }
         .stat-card.highlight .value { color: #d97706; }
+        
+        .note { font-size: 0.8rem; color: #9ca3af; margin-top: 5px; line-height: 1.4; }
 
         .chart-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); margin-bottom: 24px; height: 500px; border: 1px solid #e5e7eb; }
         
@@ -63,7 +62,7 @@
         th { background-color: #f9fafb; font-weight: 600; color: #374151; position: sticky; top: 0; z-index: 5; }
         tr:hover { background-color: #f9fafb; }
         
-        .info-box { background-color: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 16px; border-radius: 8px; margin-bottom: 24px; font-size: 0.9rem; }
+        .info-box { background-color: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 16px; border-radius: 8px; margin-bottom: 24px; font-size: 0.9rem; display: flex; align-items: center; }
     </style>
 </head>
 <body>
@@ -102,20 +101,33 @@
             </div>
         </div>
 
-        <div class="section-title">汽化热文献插值 (J/mol)</div>
+        <div class="section-title">
+            汽化热文献数据
+        </div>
+        <div class="input-group">
+            <label>数据单位选择</label>
+            <select id="heatUnit" onchange="updatePlaceholders()">
+                <option value="mol">J/mol (摩尔焓)</option>
+                <option value="kg">J/kg (质量焓)</option>
+            </select>
+        </div>
+        
         <div class="input-group">
             <label>文献点 1 (温度 / 焓值)</label>
             <div class="input-row">
                 <input type="number" id="refT1" value="26" placeholder="℃">
-                <input type="number" id="refH1" value="43635" placeholder="J/mol">
+                <input type="number" id="refH1" value="43635" placeholder="数值">
             </div>
         </div>
         <div class="input-group">
             <label>文献点 2 (温度 / 焓值)</label>
             <div class="input-row">
                 <input type="number" id="refT2" value="28" placeholder="℃">
-                <input type="number" id="refH2" value="43760" placeholder="J/mol">
+                <input type="number" id="refH2" value="43760" placeholder="数值">
             </div>
+        </div>
+        <div class="note">
+            说明：系统将根据湿球温度 Tw，在上述两点间进行线性插值计算。
         </div>
 
         <button class="btn-primary" onclick="processData()">▶ 重新计算</button>
@@ -155,9 +167,9 @@
                     <div class="unit">min</div>
                 </div>
                 <div class="stat-card">
-                    <h3>插值汽化热 (r)</h3>
+                    <h3>汽化热 r (湿球温度插值)</h3>
                     <div class="value" id="val_r">-</div>
-                    <div class="unit">kJ/kg (基于插值)</div>
+                    <div class="unit" id="unit_r">kJ/kg</div>
                 </div>
                 <div class="stat-card">
                     <h3>降速段斜率</h3>
@@ -196,10 +208,27 @@
         let processedData = [];
         let analysisResults = {};
 
-        // 摩尔质量 (kg/mol)
+        // 水的摩尔质量 (kg/mol)
         const MOLAR_MASS_WATER = 0.01801528;
 
         document.getElementById('csvFile').addEventListener('change', handleFileSelect);
+
+        // 初始化 Placeholder
+        updatePlaceholders();
+
+        function updatePlaceholders() {
+            const unit = document.getElementById('heatUnit').value;
+            const h1 = document.getElementById('refH1');
+            const h2 = document.getElementById('refH2');
+            
+            if (unit === 'mol') {
+                h1.placeholder = "例: 43635";
+                h2.placeholder = "例: 43760";
+            } else {
+                h1.placeholder = "例: 2430000";
+                h2.placeholder = "例: 2440000";
+            }
+        }
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -263,7 +292,7 @@
             processData();
             
             const msg = document.getElementById('statusMsg');
-            msg.innerText = "✅ 数据分析完成。使用了自定义汽化热插值。";
+            msg.innerText = "✅ 分析完成。";
             msg.style.color = "#059669";
             msg.parentElement.style.backgroundColor = "#ecfdf5";
             msg.parentElement.style.borderColor = "#a7f3d0";
@@ -272,23 +301,25 @@
         function processData() {
             if(!rawData.length) return;
 
-            // 1. 读取基础参数
+            // 1. 读取参数
             const P = {
                 tare: parseFloat(document.getElementById('tareWeight').value),
                 dry: parseFloat(document.getElementById('dryWeight').value),
                 area: parseFloat(document.getElementById('area').value) / 10000,
                 Td: parseFloat(document.getElementById('tDry').value),
                 Tw: parseFloat(document.getElementById('tWet').value),
-                // 文献数据
+                
+                // 文献插值数据
+                unitMode: document.getElementById('heatUnit').value,
                 T1: parseFloat(document.getElementById('refT1').value),
-                H1: parseFloat(document.getElementById('refH1').value), // J/mol
+                H1_raw: parseFloat(document.getElementById('refH1').value),
                 T2: parseFloat(document.getElementById('refT2').value),
-                H2: parseFloat(document.getElementById('refH2').value)  // J/mol
+                H2_raw: parseFloat(document.getElementById('refH2').value)
             };
 
             processedData = [];
             
-            // 2. 计算含水量 X 和 速率 U
+            // 2. 基础计算 X, U
             for(let i=0; i<rawData.length; i++) {
                 rawData[i].X = (rawData[i].w - P.tare - P.dry) / P.dry;
             }
@@ -309,7 +340,7 @@
                 });
             }
 
-            // 3. 拟合逻辑
+            // 3. 拟合
             let fitData = [...processedData].sort((a,b) => a.X_avg - b.X_avg);
             let res = { error: Infinity, Xc: 0, Uc: 0, m: 0, c: 0 };
             
@@ -328,28 +359,38 @@
                 }
             }
 
-            // 4. 计算汽化热 (基于用户输入插值)
-            // 线性插值公式: H = H1 + (Tw - T1) * (H2 - H1) / (T2 - T1)
-            let H_mol = 0;
-            if (P.T1 === P.T2) {
-                H_mol = P.H1; // 避免除以零
+            // 4. 处理汽化热 (核心更新逻辑)
+            // 先统一转换为 J/kg 再进行插值
+            let H1_jkg, H2_jkg;
+            if (P.unitMode === 'mol') {
+                // J/mol -> J/kg
+                H1_jkg = P.H1_raw / MOLAR_MASS_WATER;
+                H2_jkg = P.H2_raw / MOLAR_MASS_WATER;
             } else {
-                H_mol = P.H1 + (P.Tw - P.T1) * (P.H2 - P.H1) / (P.T2 - P.T1);
+                // 已是 J/kg
+                H1_jkg = P.H1_raw;
+                H2_jkg = P.H2_raw;
             }
-            
-            // 转换为 J/kg: (J/mol) / (kg/mol)
-            const r_val_jkg = H_mol / MOLAR_MASS_WATER;
-            
+
+            // 对 J/kg 进行插值
+            let H_interpolated_jkg = 0;
+            if (P.T1 === P.T2) {
+                H_interpolated_jkg = H1_jkg;
+            } else {
+                H_interpolated_jkg = H1_jkg + (P.Tw - P.T1) * (H2_jkg - H1_jkg) / (P.T2 - P.T1);
+            }
+
             // 5. 计算 alpha & tc
             const deltaT = P.Td - P.Tw;
-            const alpha = deltaT > 0 ? (res.Uc * 1e-4 * r_val_jkg / deltaT) : 0;
+            const alpha = deltaT > 0 ? (res.Uc * 1e-4 * H_interpolated_jkg / deltaT) : 0;
             
             let tc = 0;
             if(rawData[0].X > res.Xc) {
                 tc = (P.dry/1000 * (rawData[0].X - res.Xc)) / (res.Uc*1e-4 * P.area) / 60;
             }
 
-            analysisResults = { ...res, alpha, tc, r_kj: r_val_jkg/1000 };
+            // 记录结果 (r_kj 用于显示，单位是 kJ/kg)
+            analysisResults = { ...res, alpha, tc, r_kj: H_interpolated_jkg/1000 };
             updateUI();
         }
 

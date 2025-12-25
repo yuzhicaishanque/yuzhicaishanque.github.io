@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多釜串联实验数据处理 (JS极速版)</title>
-    <script src="https://cdn.bootcdn.net/ajax/libs/plotly.js/2.24.1/plotly.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <title>多釜串联实验数据处理</title>
+    
+    <script src="https://cdn.staticfile.org/plotly.js/2.24.1/plotly.min.js"></script>
+    <script src="https://cdn.staticfile.org/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.staticfile.org/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f2f6; display: flex; height: 100vh; }
@@ -18,7 +19,7 @@
         .input-group input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         .btn-primary { background-color: #ff4b4b; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; font-size: 1rem; transition: background 0.3s; margin-top: 10px; }
         .btn-primary:hover { background-color: #d93e3e; }
-        .btn-download { background-color: #0083B8; margin-top: 20px; display: none; } /* 默认隐藏下载按钮 */
+        .btn-download { background-color: #0083B8; margin-top: 20px; display: none; }
         
         /* 主内容区域 */
         .main { flex: 1; padding: 30px; overflow-y: auto; }
@@ -30,7 +31,7 @@
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .chart-container { width: 100%; height: 500px; }
         
-        /* 简单的加载遮罩 */
+        /* 加载遮罩 */
         #loading { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 1000; justify-content: center; align-items: center; font-size: 1.5rem; font-weight: bold; color: #ff4b4b; }
     </style>
 </head>
@@ -73,8 +74,8 @@
 
 <div class="main">
     <div class="header">
-        <h1>⚗️ 多釜串联实验数据处理 (JS 极速版)</h1>
-        <p>基于 JavaScript 原生计算，无需上传服务器，秒级出图，支持高清导出。</p>
+        <h1>⚗️ 多釜串联实验数据处理</h1>
+        <p>纯前端计算，支持高清导出。</p>
     </div>
 
     <div class="card">
@@ -94,11 +95,11 @@
 </div>
 
 <script>
-    // ==========================================
-    // 1. 数学工具库 (替代 Numpy/Scipy)
-    // ==========================================
-    
-    // 梯形积分 (对应 np.trapz)
+    // -----------------------------------------------------------
+    // 如果你依然遇到 Papa is not defined，请检查网络是否能访问 cdn.staticfile.org
+    // -----------------------------------------------------------
+
+    // 数学工具库
     function trapz(y, x) {
         let sum = 0;
         for (let i = 0; i < x.length - 1; i++) {
@@ -107,7 +108,6 @@
         return sum;
     }
 
-    // Gamma 函数 (Lanczos近似，替代 math.gamma)
     function gamma(z) {
         if (z < 0.5) return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z));
         z -= 1;
@@ -118,11 +118,9 @@
         return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
     }
 
-    // 理论 E(t) 计算
     function getTheoreticalE(tArr, tau, N) {
         if (N < 1) N = 1;
         if (tau === 0) return tArr.map(() => 0);
-        
         const coeff = (Math.pow(N, N)) / (Math.pow(tau, N) * gamma(N));
         return tArr.map(t => {
             if (t < 0) return 0;
@@ -130,14 +128,8 @@
         });
     }
 
-    // ==========================================
-    // 2. 业务逻辑
-    // ==========================================
-
-    // 全局变量存储处理后的数据，用于导出 Excel
     let globalResults = {}; 
 
-    // 自动更新理论 Tau
     document.querySelectorAll('#vol, #flow').forEach(el => {
         el.addEventListener('input', () => {
             const V = parseFloat(document.getElementById('vol').value);
@@ -153,16 +145,21 @@
         const file0 = document.getElementById('file_0').files[0];
 
         if (!file600) { alert("❌ 请至少上传 600 rpm 的数据文件！"); return; }
+        
+        // 检查库是否加载成功
+        if (typeof Papa === 'undefined') {
+            alert("⚠️ 错误：PapaParse 库加载失败。请检查网络或更换 CDN 源。");
+            return;
+        }
 
         document.getElementById('loading').style.display = 'flex';
-        globalResults = {}; // 清空旧数据
+        globalResults = {}; 
 
         const V = parseFloat(document.getElementById('vol').value);
         const Q = parseFloat(document.getElementById('flow').value);
         const theoTau = (V / Q) * 60;
 
         try {
-            // 定义任务列表
             const tasks = [
                 { file: file600, colName: '1号釜', theoN: 1, rpm: '600' },
                 { file: file600, colName: '2号釜', theoN: 2, rpm: '600' },
@@ -172,58 +169,36 @@
                 { file: file0,   colName: '1号釜', theoN: 1, rpm: '0' }
             ];
 
-            // 绘图数据容器
             const compareTraces = [];
             
-            // 循环处理每个任务
             for (let task of tasks) {
                 if (!task.file) continue;
-
-                // 1. 读取 CSV (使用 Promise 封装 FileReader)
                 const text = await readFileAsText(task.file);
                 
-                // 2. 解析 CSV (PapaParse)
                 const parseResult = Papa.parse(text, { 
-                    header: true, 
-                    dynamicTyping: true, 
-                    skipEmptyLines: true,
-                    encoding: "GBK" // 尝试 GBK 读取
+                    header: true, dynamicTyping: true, skipEmptyLines: true, encoding: "GBK" 
                 });
                 
                 let data = parseResult.data;
                 let meta = parseResult.meta;
+                if (meta.fields.length < 2) { }
 
-                // 简单的容错：如果 GBK 读出来乱码或者只有1列，可能分隔符不对
-                if (meta.fields.length < 2) {
-                     // 简单粗暴处理：如果 CSV 解析失败，用户需另存为 UTF-8，
-                     // 这里假设 PapaParse 足够强大，通常能自动识别分隔符
-                }
-
-                // 3. 提取列数据
-                // 寻找时间列 (通常是第1列)
                 const timeKey = meta.fields[0];
-                // 寻找目标列 (模糊匹配 '1号釜' 等)
                 const targetKey = meta.fields.find(f => f.includes(task.colName));
-
                 if (!targetKey) { console.warn(`找不到列: ${task.colName}`); continue; }
 
-                // 数据预处理：转为纯数组，处理时间
                 let rawT = [], rawC = [];
-                // 假设时间格式是 "yyyy/mm/dd HH:MM:SS" 或直接是秒
                 const startTime = new Date(data[0][timeKey]).getTime();
                 
                 data.forEach(row => {
                     if (row[timeKey] && row[targetKey] !== undefined) {
-                        // 计算秒数差
                         let t_sec = (new Date(row[timeKey]).getTime() - startTime) / 1000;
-                        if(isNaN(t_sec)) t_sec = parseFloat(row[timeKey]); // 假如本身就是秒
-
+                        if(isNaN(t_sec)) t_sec = parseFloat(row[timeKey]); 
                         rawT.push(t_sec);
                         rawC.push(row[targetKey]);
                     }
                 });
 
-                // 4. 核心计算 (JS 复刻 Python 逻辑)
                 const baseline = rawC[0];
                 const netC = rawC.map(c => Math.max(c - baseline, 0));
                 
@@ -234,10 +209,8 @@
                 const moment2 = trapz(rawT.map((t, i) => t*t * netC[i]), rawT);
                 const variance = area !== 0 ? (moment2 / area) - tMean*tMean : 0;
                 const N_model = variance !== 0 ? (tMean*tMean) / variance : 0;
-
                 const E_t = area !== 0 ? netC.map(c => c / area) : netC.map(() => 0);
 
-                // 存入全局结果
                 const key = `${task.colName} (${task.rpm} rpm)`;
                 globalResults[key] = {
                     t: rawT, E: E_t, rawC: rawC, netC: netC,
@@ -245,7 +218,6 @@
                     theoN: task.theoN
                 };
 
-                // 添加对比图数据 (仅1号釜)
                 if (task.colName === '1号釜') {
                     compareTraces.push({
                         x: rawT, y: E_t, mode: 'lines', name: `${task.rpm} rpm 实测`,
@@ -254,11 +226,6 @@
                 }
             }
 
-            // ==========================================
-            // 5. 绘图 (Plotly.js)
-            // ==========================================
-            
-            // 图1：转速对比
             const maxT = Math.max(...compareTraces[0].x);
             const tRef = Array.from({length: 500}, (_, i) => i * maxT / 499);
             const ERef = getTheoreticalE(tRef, theoTau, 1);
@@ -269,7 +236,7 @@
             });
 
             const layoutCommon = {
-                font: { family: "Microsoft YaHei, sans-serif" }, // 原生支持中文
+                font: { family: "Microsoft YaHei, sans-serif" },
                 xaxis: { title: '时间 t (s)' },
                 yaxis: { title: 'E(t)' },
                 hovermode: 'x unified',
@@ -284,21 +251,17 @@
 
             Plotly.newPlot('chart_compare', compareTraces, {...layoutCommon, title: '1号釜不同转速 E(t) 对比'}, configDl);
 
-            // 图2：详细拟合 (600 rpm 的 4 个釜)
             document.getElementById('detail_container').style.display = 'block';
             
             const detailKeys = ['1号釜 (600 rpm)', '2号釜 (600 rpm)', '3号釜 (600 rpm)', '4号釜 (600 rpm)'];
             detailKeys.forEach((k, idx) => {
                 if (globalResults[k]) {
                     const res = globalResults[k];
-                    // 理论曲线
                     const ETheo = getTheoreticalE(tRef, res.stats.tMean, res.theoN);
-                    
                     const traces = [
                         { x: res.t, y: res.E, mode: 'lines', name: '实测', line: {width: 2} },
                         { x: tRef, y: ETheo, mode: 'lines', name: `理论N=${res.theoN}`, line: {color:'black', dash:'dash'} }
                     ];
-                    
                     const title = `${k} (N=${res.stats.N_model.toFixed(2)})`;
                     Plotly.newPlot(`chart_detail_${idx+1}`, traces, 
                         {...layoutCommon, title: title, height: 350, margin: {t:40,b:30,l:40,r:10}}, 
@@ -311,63 +274,38 @@
 
         } catch (err) {
             console.error(err);
-            alert("处理出错：" + err.message + "\n请检查CSV文件格式是否正确。");
+            alert("处理出错：" + err.message);
         } finally {
             document.getElementById('loading').style.display = 'none';
         }
     }
 
-    // 读取文件的辅助函数
     function readFileAsText(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (e) => resolve(e.target.result);
             reader.onerror = (e) => reject(e);
-            // 默认尝试 GBK 读取，适应中文 Excel CSV
             reader.readAsText(file, 'GBK'); 
         });
     }
 
-    // ==========================================
-    // 6. Excel 导出 (SheetJS)
-    // ==========================================
     function downloadExcel() {
+        if (typeof XLSX === 'undefined') { alert("XLSX 库未加载"); return; }
         const wb = XLSX.utils.book_new();
-
-        // 遍历所有结果，每个结果一个 Sheet
         for (let [sheetName, res] of Object.entries(globalResults)) {
-            // 准备表头数据
-            const sheetData = [
-                ['原始时间', '时间(s)', '电导率原始', '电导率(净)', 'C*t', 'C*t^2', ' ', '统计项', '数值']
-            ];
-
-            // 填充数据行
+            const sheetData = [['原始时间', '时间(s)', '电导率原始', '电导率(净)', 'C*t', 'C*t^2', ' ', '统计项', '数值']];
             for (let i = 0; i < res.t.length; i++) {
-                let row = [
-                    '-', // 原始时间暂不回填
-                    res.t[i],
-                    res.rawC[i],
-                    res.netC[i],
-                    res.netC[i] * res.t[i],
-                    res.netC[i] * res.t[i] * res.t[i],
-                    '', // 空列
-                ];
-
-                // 在右侧填充统计数据 (仅前几行)
+                let row = ['-', res.t[i], res.rawC[i], res.netC[i], res.netC[i] * res.t[i], res.netC[i] * res.t[i] * res.t[i], ''];
                 if (i === 0) row.push('平均停留时间', res.stats.tMean);
                 if (i === 1) row.push('方差', res.stats.variance);
                 if (i === 2) row.push('模拟级数 N', res.stats.N_model);
                 if (i === 3) row.push('积分面积', res.stats.area);
-
                 sheetData.push(row);
             }
-            
-            // 只有字母数字下划线中文能做 sheet 名，清理一下特殊字符
             const safeName = sheetName.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '_').substring(0, 30);
             const ws = XLSX.utils.aoa_to_sheet(sheetData);
             XLSX.utils.book_append_sheet(wb, ws, safeName);
         }
-
         XLSX.writeFile(wb, "多釜串联实验结果.xlsx");
     }
 </script>

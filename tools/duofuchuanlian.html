@@ -3,56 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多釜串联实验数据处理 (完美报告版)</title>
+    <title>多釜串联实验数据处理</title>
     
     <script src="https://cdn.staticfile.org/plotly.js/2.24.1/plotly.min.js"></script>
     <script src="https://cdn.staticfile.org/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.staticfile.org/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; background-color: #f0f2f6; display: flex; height: 100vh; }
-        .sidebar { width: 300px; background: white; padding: 20px; border-right: 1px solid #ddd; display: flex; flex-direction: column; overflow-y: auto; }
-        .sidebar h2 { font-size: 1.1rem; border-bottom: 2px solid #ff4b4b; padding-bottom: 5px; margin-bottom: 15px; }
-        .input-group { margin-bottom: 15px; }
-        .input-group label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem; }
-        .input-group input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .btn-primary { background: #ff4b4b; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 10px; }
-        .btn-primary:hover { background: #d93e3e; }
-        .btn-download { background: #0083B8; margin-top: 20px; display: none; }
-        .main { flex: 1; padding: 30px; overflow-y: auto; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        #loading { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; color: #ff4b4b; font-weight: bold; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f6f9; display: flex; height: 100vh; }
+        .sidebar { width: 300px; background: white; padding: 20px; border-right: 1px solid #e1e4e8; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 2px 0 10px rgba(0,0,0,0.02); }
+        .sidebar h2 { font-size: 1.1rem; border-bottom: 2px solid #ff4b4b; padding-bottom: 8px; margin-bottom: 20px; color: #333; }
+        .input-group { margin-bottom: 18px; }
+        .input-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem; color: #555; }
+        .input-group input { width: 100%; padding: 8px 12px; border: 1px solid #dfe1e5; border-radius: 4px; box-sizing: border-box; transition: border 0.2s; }
+        .input-group input:focus { border-color: #ff4b4b; outline: none; }
+        .btn-primary { background: #ff4b4b; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: 600; margin-top: 10px; font-size: 1rem; transition: background 0.2s; }
+        .btn-primary:hover { background: #e03e3e; }
+        .btn-download { background: #0083B8; margin-top: 20px; }
+        .btn-download:hover { background: #0072a3; }
+        .main { flex: 1; padding: 40px; overflow-y: auto; }
+        .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); margin-bottom: 30px; border: 1px solid #f0f0f0; }
+        .card h3 { margin-top: 0; color: #333; border-left: 4px solid #ff4b4b; padding-left: 10px; font-size: 1.2rem; }
+        #loading { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; color: #333; }
     </style>
 </head>
 <body>
 
 <div id="loading">
-    <div style="font-size: 2rem;">🚀</div>
-    <div id="loading_text">正在计算中...</div>
+    <div style="font-size: 3rem; margin-bottom: 10px;">🧪</div>
+    <div id="loading_text" style="font-size: 1.2rem; font-weight: 500;">数据计算中...</div>
 </div>
 
 <div class="sidebar">
     <h2>⚙️ 1. 参数设置</h2>
     <div class="input-group"><label>有效体积 V (mL)</label><input type="number" id="vol" value="1040.0"></div>
     <div class="input-group"><label>流量 Q (mL/min)</label><input type="number" id="flow" value="225.0"></div>
-    <div class="input-group" style="background: #e8f0fe; padding: 10px; border-radius: 5px;">
-        <label>理论停留时间 τ (s)</label>
-        <div id="theo_tau" style="font-size: 1.2rem; font-weight: bold; color: #0068c9;">277.33</div>
+    <div class="input-group" style="background: #f1f8ff; padding: 12px; border-radius: 6px; border: 1px solid #cce5ff;">
+        <label style="color: #004085;">理论停留时间 τ (s)</label>
+        <div id="theo_tau" style="font-size: 1.4rem; font-weight: bold; color: #0056b3;">277.33</div>
     </div>
 
-    <h2>📂 2. 上传 CSV 数据</h2>
+    <h2 style="margin-top: 30px;">📂 2. 上传数据</h2>
     <div class="input-group"><label>600 rpm (必须)</label><input type="file" id="file_600" accept=".csv"></div>
     <div class="input-group"><label>300 rpm (可选)</label><input type="file" id="file_300" accept=".csv"></div>
     <div class="input-group"><label>0 rpm (可选)</label><input type="file" id="file_0" accept=".csv"></div>
 
     <button class="btn-primary" onclick="startProcess()">🚀 开始处理</button>
-    <button class="btn-primary btn-download" id="btn_download" onclick="downloadExcel()">📥 下载 Excel 报告</button>
+    <button class="btn-primary btn-download" id="btn_download" style="display:none;" onclick="downloadExcel()">📥 导出 Excel 报告</button>
 </div>
 
 <div class="main">
-    <div style="margin-bottom: 20px;">
-        <h1 style="margin: 0;">⚗️ 多釜串联数据处理 (报告专用版)</h1>
-        <p style="color: #666;">自动抽样 25 组数据，包含 L(t) 积分表与完整统计指标。</p>
+    <div style="margin-bottom: 30px;">
+        <h1 style="margin: 0; color: #1a1a1a;">⚗️ 多釜串联数据处理</h1>
+        <p style="color: #666; margin-top: 8px;">输入数据并进行处理。</p>
     </div>
 
     <div class="card">
@@ -62,11 +65,11 @@
 
     <div class="card" id="detail_container" style="display:none;">
         <h3>📈 600 rpm 各釜模型拟合详情</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <div id="chart_detail_1" style="height: 350px;"></div>
-            <div id="chart_detail_2" style="height: 350px;"></div>
-            <div id="chart_detail_3" style="height: 350px;"></div>
-            <div id="chart_detail_4" style="height: 350px;"></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+            <div id="chart_detail_1" style="height: 380px;"></div>
+            <div id="chart_detail_2" style="height: 380px;"></div>
+            <div id="chart_detail_3" style="height: 380px;"></div>
+            <div id="chart_detail_4" style="height: 380px;"></div>
         </div>
     </div>
 </div>
@@ -101,10 +104,8 @@
         });
     }
 
-    // --- 全局变量 ---
     let globalResults = {}; 
 
-    // 参数联动
     document.querySelectorAll('#vol, #flow').forEach(el => {
         el.addEventListener('input', () => {
             const V = parseFloat(document.getElementById('vol').value);
@@ -144,9 +145,7 @@
                 if (!task.file) continue;
                 
                 const text = await readFileAsText(task.file);
-                const parseResult = Papa.parse(text, { 
-                    header: true, dynamicTyping: true, skipEmptyLines: true, encoding: "GBK"
-                });
+                const parseResult = Papa.parse(text, { header: true, dynamicTyping: true, skipEmptyLines: true, encoding: "GBK" });
                 
                 let data = parseResult.data;
                 let meta = parseResult.meta;
@@ -154,33 +153,25 @@
 
                 let targetKey = fields.find(f => f.includes(task.keyword));
                 if (!targetKey) {
-                    if (fields.length > task.colIndex) {
-                        targetKey = fields[task.colIndex];
-                    } else {
-                        continue;
-                    }
+                    if (fields.length > task.colIndex) targetKey = fields[task.colIndex];
+                    else continue;
                 }
 
                 const timeKey = fields[0];
-                let rawT = [], rawC = [], rawTimeStr = []; // 新增：rawTimeStr
+                let rawT = [], rawC = [], rawTimeStr = [];
                 
                 let startTime = 0;
-                if (data.length > 0 && data[0][timeKey]) {
-                    startTime = tryParseTime(data[0][timeKey]);
-                }
+                if (data.length > 0 && data[0][timeKey]) startTime = tryParseTime(data[0][timeKey]);
 
                 data.forEach(row => {
                     let val = row[targetKey];
                     let tRaw = row[timeKey];
-                    
                     if (val !== undefined && tRaw !== undefined) {
                         let t_sec = tryParseTime(tRaw) - startTime;
                         if (isNaN(t_sec)) t_sec = parseFloat(tRaw);
                         if (t_sec < 0) t_sec = parseFloat(tRaw);
-
                         rawT.push(t_sec);
                         rawC.push(parseFloat(val));
-                        // 保存原始时间字符串，如果是日期对象则转字符串
                         rawTimeStr.push(tRaw); 
                     }
                 });
@@ -193,7 +184,6 @@
                 const area = trapz(netC, rawT);
                 if (area === 0) continue; 
 
-                // 矩计算
                 const moment1 = trapz(rawT.map((t, i) => t * netC[i]), rawT);
                 const tMean = moment1 / area;
                 const moment2 = trapz(rawT.map((t, i) => t*t * netC[i]), rawT);
@@ -210,7 +200,7 @@
 
                 if (task.name === '1号釜') {
                     compareTraces.push({
-                        x: rawT, y: E_t, mode: 'lines', name: `${task.rpm} rpm 实测`,
+                        x: rawT, y: E_t, mode: 'lines', name: `${task.rpm} rpm`, // 简化图例文字，防止过长
                         line: { width: 2 }
                     });
                 }
@@ -221,53 +211,74 @@
                 return;
             }
 
-            // 绘图
             const maxT = Math.max(...compareTraces[0].x);
             const tRef = Array.from({length: 500}, (_, i) => i * maxT / 499);
             const ERef = getTheoreticalE(tRef, theoTau, 1);
             
             compareTraces.push({
-                x: tRef, y: ERef, mode: 'lines', name: '理论全混流 (N=1)',
+                x: tRef, y: ERef, mode: 'lines', name: '理论全混流',
                 line: { color: 'black', dash: 'dash', width: 1.5 }
             });
 
-            // 修复样式：原点对齐，标题不重叠
-            const layoutCommon = {
-                font: { family: "Microsoft YaHei, sans-serif" },
+            // ---------------------------------------------------------
+            // 🎨 1. 定义核心样式
+            // ---------------------------------------------------------
+            
+            // 悬浮图例样式 (你的核心需求)
+            const legendStyle = {
+                x: 0.99, y: 0.98, // 坐标 (0-1)，右上角
+                xanchor: 'right', yanchor: 'top',
+                bgcolor: 'rgba(255, 255, 255, 0.85)', // 半透明白底
+                bordercolor: '#ccc', // 灰色边框
+                borderwidth: 1
+            };
+
+            const layoutBase = {
+                font: { family: "Microsoft YaHei, -apple-system, sans-serif", size: 12, color: "#333" },
                 xaxis: { 
-                    title: { text: '时间 t (s)', standoff: 20 },
-                    range: [0, null], rangemode: 'nonnegative', zeroline: true 
+                    title: { text: '时间 t (s)', standoff: 15 },
+                    range: [0, null], rangemode: 'nonnegative', 
+                    zeroline: true, zerolinecolor: '#333', zerolinewidth: 2,
+                    showgrid: true, gridcolor: '#e0e0e0', gridwidth: 1, griddash: 'dot' 
                 },
                 yaxis: { 
-                    title: { text: 'E(t)', standoff: 20 },
-                    range: [0, null], rangemode: 'nonnegative', zeroline: true 
+                    title: { text: 'E(t)', standoff: 15 },
+                    range: [0, null], rangemode: 'nonnegative', 
+                    zeroline: true, zerolinecolor: '#333', zerolinewidth: 2,
+                    showgrid: true, gridcolor: '#e0e0e0', gridwidth: 1, griddash: 'dot'
                 },
+                paper_bgcolor: 'white',
+                plot_bgcolor: 'white',
                 hovermode: 'x unified',
-                template: 'simple_white',
-                margin: { t: 50, r: 30, b: 80, l: 80 }
+                legend: legendStyle, // ✨ 这里应用全局图例样式
+                margin: { t: 60, r: 20, b: 70, l: 80 }
             };
 
             const configDl = {
-                toImageButtonOptions: { format: 'png', filename: '转速对比', height: 600, width: 800, scale: 3 },
+                toImageButtonOptions: { format: 'png', filename: '实验图表', height: 900, width: 1200, scale: 2 },
                 displayModeBar: true, displaylogo: false
             };
 
-            Plotly.newPlot('chart_compare', compareTraces, {...layoutCommon, title: '1号釜不同转速 E(t) 对比'}, configDl);
+            // 绘制图1
+            Plotly.newPlot('chart_compare', compareTraces, {...layoutBase, title: '1号釜不同转速 E(t) 对比'}, configDl);
 
             document.getElementById('detail_container').style.display = 'block';
             const detailKeys = ['1号釜 (600 rpm)', '2号釜 (600 rpm)', '3号釜 (600 rpm)', '4号釜 (600 rpm)'];
             
+            // 绘制详细图
             detailKeys.forEach((k, idx) => {
                 const domId = `chart_detail_${idx+1}`;
                 if (globalResults[k]) {
                     const res = globalResults[k];
                     const ETheo = getTheoreticalE(tRef, res.stats.tMean, res.theoN);
+                    
                     const traces = [
-                        { x: res.t, y: res.E, mode: 'lines', name: '实测', line: {width: 2} },
-                        { x: tRef, y: ETheo, mode: 'lines', name: `理论N=${res.theoN}`, line: {color:'black', dash:'dash'} }
+                        { x: res.t, y: res.E, mode: 'lines', name: '实测值 (Exp)', line: {color: '#ff7f0e', width: 2.5} },
+                        { x: tRef, y: ETheo, mode: 'lines', name: `理论值 (N=${res.theoN})`, line: {color: 'black', dash: 'dash', width: 2} }
                     ];
+
                     Plotly.newPlot(domId, traces, 
-                        {...layoutCommon, title: `${k} (N=${res.stats.N_model.toFixed(2)})`, height: 350}, 
+                        {...layoutBase, title: `${k} (N=${res.stats.N_model.toFixed(2)})`}, 
                         {...configDl, toImageButtonOptions: {...configDl.toImageButtonOptions, filename: k}}
                     );
                 } else {
@@ -285,7 +296,6 @@
         }
     }
 
-    // 辅助函数
     function tryParseTime(input) {
         if (typeof input === 'number') return input;
         const t = new Date(input).getTime();
@@ -302,94 +312,32 @@
         });
     }
 
-    // ✅ 核心修改：Excel 导出逻辑
     function downloadExcel() {
         if (typeof XLSX === 'undefined') { alert("XLSX 库未加载"); return; }
         const wb = XLSX.utils.book_new();
 
         for (let [sheetName, res] of Object.entries(globalResults)) {
-            // L(t) 在此语境下即 Net Concentration (净电导率)
-            const L = res.netC; 
-            const t = res.t;
-            const rawTime = res.rawTimeStr;
-            const rawC = res.rawC;
+            const L = res.netC; const t = res.t; const rawTime = res.rawTimeStr; const rawC = res.rawC;
+            const targetCount = 25; const totalLen = t.length; const step = Math.max(1, Math.floor(totalLen / targetCount));
+            const sheetData = [['原始时间', '原始电导率', 't (s)', 'L(t) (净值)', 't*L(t)', 't^2*L(t)', '', '统计项', '计算结果']];
 
-            // 抽样逻辑：只取约 25 个点
-            const targetCount = 25;
-            const totalLen = t.length;
-            const step = Math.max(1, Math.floor(totalLen / targetCount));
-            
-            // 表头
-            const sheetData = [
-                ['原始时间', '原始电导率', 't (s)', 'L(t) (净值)', 't*L(t)', 't^2*L(t)', '', '统计项', '计算结果']
-            ];
-
-            // 填充抽样数据
-            let sampleRowIndex = 1; // 数据写入Excel的行索引
             for (let i = 0; i < totalLen; i += step) {
-                // 防止越界
                 if (i >= totalLen) break;
-
-                const val_L = L[i];
-                const val_t = t[i];
-                const val_tL = val_t * val_L;
-                const val_t2L = val_t * val_t * val_L;
-
-                // 每一行数据
-                let row = [
-                    rawTime[i],  // 原始时间
-                    rawC[i],     // 原始电导率
-                    val_t,       // t
-                    val_L,       // L(t)
-                    val_tL,      // t*L(t)
-                    val_t2L,     // t^2*L(t)
-                    '',          // 空列，用于分隔
-                    '',          // 统计项名 (后面填充)
-                    ''           // 统计数值 (后面填充)
-                ];
-                
+                const val_L = L[i]; const val_t = t[i];
+                let row = [rawTime[i], rawC[i], val_t, val_L, val_t * val_L, val_t * val_t * val_L, '', '', ''];
                 sheetData.push(row);
-                sampleRowIndex++;
             }
-
-            // 确保最后一行数据也包含进去（如果是重点）
-            // 这里为了保持 25 行左右，就不强行加最后一行了，均匀抽样即可
-
-            // 填充右侧统计数据 (基于全量数据计算，更准确)
-            // L(t)之和 -> 面积 (Area)
-            // t*L(t)之和 -> Moment 1
-            // t^2*L(t)之和 -> Moment 2
-            
-            // 安全填充函数
-            const setStat = (rowIdx, name, val) => {
-                if (sheetData[rowIdx]) {
-                    sheetData[rowIdx][7] = name;
-                    sheetData[rowIdx][8] = val; // 保留2位小数在Excel显示时由用户控制，或者这里toFixed
-                }
-            };
-
-            setStat(1, 'L(t)之和 (积分面积)', res.stats.area); // 对应积分面积
+            const setStat = (rowIdx, name, val) => { if (sheetData[rowIdx]) { sheetData[rowIdx][7] = name; sheetData[rowIdx][8] = val; } };
+            setStat(1, 'L(t)之和 (积分面积)', res.stats.area);
             setStat(2, 't*L(t)之和 (一阶矩)', res.stats.moment1);
             setStat(3, 't^2*L(t)之和 (二阶矩)', res.stats.moment2);
             setStat(4, '平均停留时间 (s)', res.stats.tMean);
             setStat(5, '方差', res.stats.variance);
             setStat(6, '模拟釜数 N', res.stats.N_model);
             
-            // 添加一个说明
-            if (sheetData[8]) {
-                sheetData[8][7] = '说明:';
-                sheetData[8][8] = '统计值基于全部数据计算';
-            }
-
             const safeName = sheetName.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '_').substring(0, 30);
             const ws = XLSX.utils.aoa_to_sheet(sheetData);
-            
-            // 设置列宽稍微好看点
-            ws['!cols'] = [
-                {wch: 15}, {wch: 12}, {wch: 10}, {wch: 12}, {wch: 15}, {wch: 15}, 
-                {wch: 5}, {wch: 25}, {wch: 15}
-            ];
-
+            ws['!cols'] = [{wch: 15}, {wch: 12}, {wch: 10}, {wch: 12}, {wch: 15}, {wch: 15}, {wch: 5}, {wch: 25}, {wch: 15}];
             XLSX.utils.book_append_sheet(wb, ws, safeName);
         }
         XLSX.writeFile(wb, "多釜串联实验报告数据.xlsx");

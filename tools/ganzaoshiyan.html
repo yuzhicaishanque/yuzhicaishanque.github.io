@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>干燥实验数据处理 (多单位插值版)</title>
+    <title>干燥实验数据处理 (悬浮图例版)</title>
     
     <script src="https://cdn.staticfile.org/plotly.js/2.24.1/plotly.min.js"></script>
     <script src="https://cdn.staticfile.org/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -15,7 +15,7 @@
         .sidebar { width: 340px; background: white; padding: 25px; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 4px 0 24px rgba(0,0,0,0.02); z-index: 10; }
         .sidebar h2 { font-size: 1.2rem; color: #111827; border-bottom: 2px solid #3b82f6; padding-bottom: 12px; margin-bottom: 20px; font-weight: 700; }
         
-        .section-title { font-size: 0.85rem; font-weight: 700; color: #4b5563; margin-top: 20px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; border-left: 3px solid #3b82f6; padding-left: 8px; display: flex; align-items: center; justify-content: space-between; }
+        .section-title { font-size: 0.85rem; font-weight: 700; color: #4b5563; margin-top: 20px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; border-left: 3px solid #3b82f6; padding-left: 8px; }
         
         .input-group { margin-bottom: 12px; }
         .input-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.85rem; color: #374151; }
@@ -23,7 +23,6 @@
             width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; transition: all 0.2s; background: #f9fafb; box-sizing: border-box;
         }
         .input-group input:focus, .input-group select:focus { outline: none; border-color: #3b82f6; background: white; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-        
         .input-row { display: flex; gap: 10px; }
         
         .file-upload { margin-bottom: 20px; padding: 15px; background: #eff6ff; border: 2px dashed #93c5fd; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; }
@@ -53,8 +52,6 @@
         .stat-card.highlight::before { background: #f59e0b; }
         .stat-card.highlight .value { color: #d97706; }
         
-        .note { font-size: 0.8rem; color: #9ca3af; margin-top: 5px; line-height: 1.4; }
-
         .chart-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); margin-bottom: 24px; height: 500px; border: 1px solid #e5e7eb; }
         
         table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; font-size: 0.9rem; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
@@ -102,10 +99,10 @@
         </div>
 
         <div class="section-title">
-            汽化热文献数据
+            汽化热文献插值
         </div>
         <div class="input-group">
-            <label>数据单位选择</label>
+            <label>单位选择</label>
             <select id="heatUnit" onchange="updatePlaceholders()">
                 <option value="mol">J/mol (摩尔焓)</option>
                 <option value="kg">J/kg (质量焓)</option>
@@ -113,21 +110,18 @@
         </div>
         
         <div class="input-group">
-            <label>文献点 1 (温度 / 焓值)</label>
+            <label>数据点 1 (温度 / 焓值)</label>
             <div class="input-row">
                 <input type="number" id="refT1" value="26" placeholder="℃">
                 <input type="number" id="refH1" value="43635" placeholder="数值">
             </div>
         </div>
         <div class="input-group">
-            <label>文献点 2 (温度 / 焓值)</label>
+            <label>数据点 2 (温度 / 焓值)</label>
             <div class="input-row">
                 <input type="number" id="refT2" value="28" placeholder="℃">
                 <input type="number" id="refH2" value="43760" placeholder="数值">
             </div>
-        </div>
-        <div class="note">
-            说明：系统将根据湿球温度 Tw，在上述两点间进行线性插值计算。
         </div>
 
         <button class="btn-primary" onclick="processData()">▶ 重新计算</button>
@@ -167,9 +161,9 @@
                     <div class="unit">min</div>
                 </div>
                 <div class="stat-card">
-                    <h3>汽化热 r (湿球温度插值)</h3>
+                    <h3>汽化热 r (插值)</h3>
                     <div class="value" id="val_r">-</div>
-                    <div class="unit" id="unit_r">kJ/kg</div>
+                    <div class="unit">kJ/kg</div>
                 </div>
                 <div class="stat-card">
                     <h3>降速段斜率</h3>
@@ -195,7 +189,7 @@
                         <th>总重量 (g)</th>
                         <th>含水量 X</th>
                         <th>平均 Xavg</th>
-                        <th>速率 U (10⁻⁴kg/(s·m²))</th>
+                        <th>速率 U (10⁻⁴)</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -207,37 +201,28 @@
         let rawData = [];
         let processedData = [];
         let analysisResults = {};
-
-        // 水的摩尔质量 (kg/mol)
         const MOLAR_MASS_WATER = 0.01801528;
 
         document.getElementById('csvFile').addEventListener('change', handleFileSelect);
-
-        // 初始化 Placeholder
         updatePlaceholders();
 
         function updatePlaceholders() {
             const unit = document.getElementById('heatUnit').value;
             const h1 = document.getElementById('refH1');
             const h2 = document.getElementById('refH2');
-            
             if (unit === 'mol') {
-                h1.placeholder = "例: 43635";
-                h2.placeholder = "例: 43760";
+                h1.placeholder = "例: 43635"; h2.placeholder = "例: 43760";
             } else {
-                h1.placeholder = "例: 2430000";
-                h2.placeholder = "例: 2440000";
+                h1.placeholder = "例: 2430000"; h2.placeholder = "例: 2440000";
             }
         }
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.content-area').forEach(c => c.classList.remove('active'));
-            
             const idx = ['report', 'charts', 'data'].indexOf(tabId);
             document.querySelectorAll('.tab')[idx].classList.add('active');
             document.getElementById(tabId).classList.add('active');
-            
             if(tabId === 'charts') {
                 Plotly.relayout('chart_rate', {autosize: true});
                 Plotly.relayout('chart_drying', {autosize: true});
@@ -250,7 +235,6 @@
             const file = evt.target.files[0];
             if (!file) return;
             document.getElementById('fileName').textContent = "📄 " + file.name;
-
             const reader = new FileReader();
             reader.onload = function(e) {
                 const data = e.target.result;
@@ -273,8 +257,7 @@
                 const s = JSON.stringify(rows[i]);
                 if(s.includes('时间') || s.includes('总重量')) { headerIdx = i; break; }
             }
-            if(headerIdx === -1) return alert("未找到包含[时间]或[总重量]的表头行");
-
+            if(headerIdx === -1) return alert("未找到表头行");
             const headers = rows[headerIdx].map(x => (x||'').toString());
             const idxT = headers.findIndex(h => h.includes('时间'));
             const idxW = headers.findIndex(h => h.includes('总重量'));
@@ -290,7 +273,6 @@
             }
             rawData.sort((a,b) => a.t - b.t);
             processData();
-            
             const msg = document.getElementById('statusMsg');
             msg.innerText = "✅ 分析完成。";
             msg.style.color = "#059669";
@@ -300,16 +282,12 @@
 
         function processData() {
             if(!rawData.length) return;
-
-            // 1. 读取参数
             const P = {
                 tare: parseFloat(document.getElementById('tareWeight').value),
                 dry: parseFloat(document.getElementById('dryWeight').value),
                 area: parseFloat(document.getElementById('area').value) / 10000,
                 Td: parseFloat(document.getElementById('tDry').value),
                 Tw: parseFloat(document.getElementById('tWet').value),
-                
-                // 文献插值数据
                 unitMode: document.getElementById('heatUnit').value,
                 T1: parseFloat(document.getElementById('refT1').value),
                 H1_raw: parseFloat(document.getElementById('refH1').value),
@@ -318,20 +296,13 @@
             };
 
             processedData = [];
-            
-            // 2. 基础计算 X, U
-            for(let i=0; i<rawData.length; i++) {
-                rawData[i].X = (rawData[i].w - P.tare - P.dry) / P.dry;
-            }
+            for(let i=0; i<rawData.length; i++) rawData[i].X = (rawData[i].w - P.tare - P.dry) / P.dry;
             for(let i=0; i<rawData.length-1; i++) {
                 const p1 = rawData[i], p2 = rawData[i+1];
                 const dt = p2.t - p1.t;
                 if(dt <= 0) continue;
-                
                 const dW_kg = (p2.w - p1.w) / 1000;
-                const dt_s = dt * 60;
-                const rate_si = -(dW_kg / dt_s) / P.area;
-                
+                const rate_si = -(dW_kg / (dt * 60)) / P.area;
                 processedData.push({
                     t_mid: (p1.t+p2.t)/2,
                     X_avg: (p1.X+p2.X)/2,
@@ -340,57 +311,29 @@
                 });
             }
 
-            // 3. 拟合
             let fitData = [...processedData].sort((a,b) => a.X_avg - b.X_avg);
             let res = { error: Infinity, Xc: 0, Uc: 0, m: 0, c: 0 };
-            
             for(let k=3; k<fitData.length-3; k++) {
                 const segFall = fitData.slice(0, k+1);
                 const segConst = fitData.slice(k+1);
-
                 const meanU = segConst.reduce((s,x)=>s+x.U_scaled,0)/segConst.length;
-                const errConst = segConst.reduce((s,x)=>s+(x.U_scaled-meanU)**2, 0);
-
                 const reg = linReg(segFall.map(d=>d.X_avg), segFall.map(d=>d.U_scaled));
-                const errFall = segFall.reduce((s,x)=>s+(x.U_scaled-(reg.m*x.X_avg+reg.c))**2, 0);
-
-                if(errConst+errFall < res.error) {
-                    res = { error: errConst+errFall, Xc: (meanU-reg.c)/reg.m, Uc: meanU, m: reg.m, c: reg.c };
-                }
+                const err = segConst.reduce((s,x)=>s+(x.U_scaled-meanU)**2,0) + segFall.reduce((s,x)=>s+(x.U_scaled-(reg.m*x.X_avg+reg.c))**2,0);
+                if(err < res.error) res = { error: err, Xc: (meanU-reg.c)/reg.m, Uc: meanU, m: reg.m, c: reg.c };
             }
 
-            // 4. 处理汽化热 (核心更新逻辑)
-            // 先统一转换为 J/kg 再进行插值
-            let H1_jkg, H2_jkg;
-            if (P.unitMode === 'mol') {
-                // J/mol -> J/kg
-                H1_jkg = P.H1_raw / MOLAR_MASS_WATER;
-                H2_jkg = P.H2_raw / MOLAR_MASS_WATER;
-            } else {
-                // 已是 J/kg
-                H1_jkg = P.H1_raw;
-                H2_jkg = P.H2_raw;
-            }
+            let H1_jkg = P.unitMode === 'mol' ? P.H1_raw / MOLAR_MASS_WATER : P.H1_raw;
+            let H2_jkg = P.unitMode === 'mol' ? P.H2_raw / MOLAR_MASS_WATER : P.H2_raw;
+            let H_interpolated = P.T1 === P.T2 ? H1_jkg : H1_jkg + (P.Tw - P.T1) * (H2_jkg - H1_jkg) / (P.T2 - P.T1);
 
-            // 对 J/kg 进行插值
-            let H_interpolated_jkg = 0;
-            if (P.T1 === P.T2) {
-                H_interpolated_jkg = H1_jkg;
-            } else {
-                H_interpolated_jkg = H1_jkg + (P.Tw - P.T1) * (H2_jkg - H1_jkg) / (P.T2 - P.T1);
-            }
-
-            // 5. 计算 alpha & tc
             const deltaT = P.Td - P.Tw;
-            const alpha = deltaT > 0 ? (res.Uc * 1e-4 * H_interpolated_jkg / deltaT) : 0;
-            
+            const alpha = deltaT > 0 ? (res.Uc * 1e-4 * H_interpolated / deltaT) : 0;
             let tc = 0;
             if(rawData[0].X > res.Xc) {
                 tc = (P.dry/1000 * (rawData[0].X - res.Xc)) / (res.Uc*1e-4 * P.area) / 60;
             }
 
-            // 记录结果 (r_kj 用于显示，单位是 kJ/kg)
-            analysisResults = { ...res, alpha, tc, r_kj: H_interpolated_jkg/1000 };
+            analysisResults = { ...res, alpha, tc, r_kj: H_interpolated/1000 };
             updateUI();
         }
 
@@ -405,21 +348,16 @@
         function updateUI() {
             const R = analysisResults;
             const setVal = (id, v, fix=2) => document.getElementById(id).innerText = isFinite(v) ? v.toFixed(fix) : '-';
+            setVal('val_xc', R.Xc, 4); setVal('val_uc', R.Uc, 3);
+            setVal('val_alpha', R.alpha, 2); setVal('val_tc', R.tc, 2);
+            setVal('val_r', R.r_kj, 1); setVal('val_m', R.m, 2);
             
-            setVal('val_xc', R.Xc, 4);
-            setVal('val_uc', R.Uc, 3);
-            setVal('val_alpha', R.alpha, 2);
-            setVal('val_tc', R.tc, 2);
-            setVal('val_r', R.r_kj, 1);
-            setVal('val_m', R.m, 2);
-
             const tbody = document.querySelector('#dataTable tbody');
             tbody.innerHTML = rawData.map((d, i) => {
                 const u = i < processedData.length ? processedData[i].U_scaled.toFixed(3) : '-';
                 const xa = i < processedData.length ? processedData[i].X_avg.toFixed(4) : '-';
                 return `<tr><td>${i+1}</td><td>${d.t}</td><td>${d.w}</td><td>${d.X.toFixed(4)}</td><td>${xa}</td><td>${u}</td></tr>`;
             }).join('');
-
             plotCharts();
         }
 
@@ -428,11 +366,13 @@
             const maxU = Math.max(...processedData.map(d=>d.U_scaled));
             const yRange = [0, maxU * 1.2];
 
+            // 1. 速率图
             const tracePoints = {
                 x: processedData.map(d => d.X_avg),
                 y: processedData.map(d => d.U_scaled),
-                mode: 'markers', name: '实验点',
-                marker: { color: '#3b82f6', size: 8 }
+                mode: 'markers', 
+                name: '实验数据', 
+                marker: { color: '#3b82f6', size: 8, opacity: 0.7, line: {color: 'white', width: 1} }
             };
 
             const lineX = [], lineY = [];
@@ -443,32 +383,64 @@
                 lineY.push(x < R.Xc ? R.m*x + R.c : R.Uc);
             }
             
-            const traceLine = { x: lineX, y: lineY, mode: 'lines', name: '拟合曲线', line: {color:'#ef4444', width:2, dash:'dash'} };
-            const traceXc = { x: [R.Xc, R.Xc], y: [0, maxU*1.5], mode: 'lines', name: '临界点 Xc', line: {color:'#10b981', dash:'dot'} };
+            const traceLine = { 
+                x: lineX, y: lineY, mode: 'lines', 
+                name: `拟合模型 (Xc=${R.Xc.toFixed(3)})`, 
+                line: {color:'#ef4444', width:2, dash:'dash'} 
+            };
+            const traceXc = { 
+                x: [R.Xc, R.Xc], y: [0, maxU*1.5], mode: 'lines', 
+                name: '临界点位置', 
+                line: {color:'#10b981', dash:'dot'} 
+            };
+
+            // 【关键修改】图例悬浮在右上角内部
+            const layoutLegend = {
+                showlegend: true,
+                legend: {
+                    x: 0.99,            // 靠右
+                    y: 0.99,            // 靠顶
+                    xanchor: 'right',   // 右对齐
+                    yanchor: 'top',     // 顶对齐
+                    bgcolor: 'rgba(255, 255, 255, 0.8)', // 半透明白底
+                    bordercolor: '#e5e7eb', // 灰色边框
+                    borderwidth: 1
+                }
+            };
 
             const layoutRate = {
+                ...layoutLegend,
                 title: '干燥速率曲线',
                 xaxis: { title: '含水量 X (kg/kg)' },
-                yaxis: { title: '干燥速率 U (×10⁻⁴kg/s·m²)', range: yRange },
-                margin: { t:40, l:50, r:20, b:40 },
-                hovermode: 'closest',
-                showlegend: true, legend: {x:0.7, y:0.1}
+                yaxis: { title: '干燥速率 U (×10⁻⁴)', range: yRange },
+                margin: { t:40, l:50, r:30, b:40 },
+                hovermode: 'closest'
             };
 
             Plotly.newPlot('chart_rate', [tracePoints, traceLine, traceXc], layoutRate);
             Plotly.newPlot('chart_rate_mini', [tracePoints, traceLine, traceXc], {...layoutRate, title:''});
 
+            // 2. 干燥曲线
             const traceDrying = {
                 x: rawData.map(d=>d.t), y: rawData.map(d=>d.X),
-                mode: 'lines+markers', name: '含水量', line: {color:'#1d4ed8'}
+                mode: 'lines+markers', name: '含水量变化', line: {color:'#1d4ed8'}
             };
-            const traceTc = { x:[R.tc, R.tc], y:[0, Math.max(...rawData.map(d=>d.X))], mode:'lines', name:'恒速时间 tc', line:{color:'#f59e0b', dash:'dash'} };
+            const traceTc = { 
+                x:[R.tc, R.tc], y:[0, Math.max(...rawData.map(d=>d.X))], 
+                mode:'lines', 
+                name: `恒速时间 (${R.tc.toFixed(1)} min)`, 
+                line:{color:'#f59e0b', dash:'dash'} 
+            };
             
-            Plotly.newPlot('chart_drying', [traceDrying, traceTc], {
+            const layoutTime = {
+                ...layoutLegend, // 复用图例配置
                 title: '干燥曲线 (X - t)',
-                xaxis: { title: '时间 (min)' }, yaxis: { title: '含水量 X' },
-                margin: { t:40, l:50, r:20, b:40 }
-            });
+                xaxis: { title: '时间 (min)' }, 
+                yaxis: { title: '含水量 X' },
+                margin: { t:40, l:50, r:30, b:40 }
+            };
+
+            Plotly.newPlot('chart_drying', [traceDrying, traceTc], layoutTime);
         }
     </script>
 </body>

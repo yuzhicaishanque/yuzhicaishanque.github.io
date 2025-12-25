@@ -141,12 +141,12 @@
 
             <div class="stats-grid">
                 <div class="stat-card highlight">
-                    <h3>临界含水量 (Xc)</h3>
+                    <h3>临界含水量 (X<sub>c</sub>)</h3>
                     <div class="value" id="val_xc">-</div>
                     <div class="unit">kg水/kg干料</div>
                 </div>
                 <div class="stat-card">
-                    <h3>恒速干燥速率 (Uc)</h3>
+                    <h3>恒速干燥速率 (U<sub>c</sub>)</h3>
                     <div class="value" id="val_uc">-</div>
                     <div class="unit">×10⁻⁴ kg/(s·m²)</div>
                 </div>
@@ -156,7 +156,7 @@
                     <div class="unit">W/(m²·K)</div>
                 </div>
                 <div class="stat-card">
-                    <h3>恒速段时间 (tc)</h3>
+                    <h3>恒速段时间 (t<sub>c</sub>)</h3>
                     <div class="value" id="val_tc">-</div>
                     <div class="unit">min</div>
                 </div>
@@ -185,11 +185,11 @@
                 <thead>
                     <tr>
                         <th>序号</th>
-                        <th>时间 (min)</th>
-                        <th>总重量 (g)</th>
-                        <th>含水量 X</th>
-                        <th>平均 Xavg</th>
-                        <th>速率 U (10⁻⁴)</th>
+                        <th>累计时间 t (min)</th>
+                        <th>总重量 G (g)</th>
+                        <th>干基含水量 X (kg/kg)</th>
+                        <th>平均含水量 Xavg (kg/kg)</th>
+                        <th>速率 U (10⁻⁴kg/(s·m²))</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -435,8 +435,8 @@
             const layoutTime = {
                 ...layoutLegend, // 复用图例配置
                 title: '干燥曲线 (X - t)',
-                xaxis: { title: '时间 (min)' }, 
-                yaxis: { title: '含水量 X' },
+                xaxis: { title: '时间 t (min)' }, 
+                yaxis: { title: '含水量 X (kg/kg)' },
                 margin: { t:40, l:50, r:30, b:40 }
             };
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>干燥实验数据处理</title>
+    <title>干燥实验数据处理 (修复大小写版)</title>
     
     <script src="https://cdn.staticfile.org/plotly.js/2.24.1/plotly.min.js"></script>
     <script src="https://cdn.staticfile.org/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -15,7 +15,8 @@
         .sidebar { width: 340px; background: white; padding: 25px; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 4px 0 24px rgba(0,0,0,0.02); z-index: 10; }
         .sidebar h2 { font-size: 1.2rem; color: #111827; border-bottom: 2px solid #3b82f6; padding-bottom: 12px; margin-bottom: 20px; font-weight: 700; }
         
-        .section-title { font-size: 0.85rem; font-weight: 700; color: #4b5563; margin-top: 20px; margin-bottom: 10px; text-transform: none; letter-spacing: 0.05em; border-left: 3px solid #3b82f6; padding-left: 8px; }
+        /* 修改点 1: 移除了 text-transform: uppercase */
+        .section-title { font-size: 0.85rem; font-weight: 700; color: #4b5563; margin-top: 20px; margin-bottom: 10px; letter-spacing: 0.05em; border-left: 3px solid #3b82f6; padding-left: 8px; }
         
         .input-group { margin-bottom: 12px; }
         .input-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.85rem; color: #374151; }
@@ -46,7 +47,10 @@
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .stat-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid #f3f4f6; position: relative; overflow: hidden; }
         .stat-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #3b82f6; }
-        .stat-card h3 { margin: 0 0 8px 0; color: #6b7280; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
+        
+        /* 修改点 2: 移除了 text-transform: uppercase */
+        .stat-card h3 { margin: 0 0 8px 0; color: #6b7280; font-size: 0.8rem; font-weight: 600; }
+        
         .stat-card .value { font-size: 1.75rem; font-weight: 700; color: #111827; }
         .stat-card .unit { font-size: 0.8rem; color: #9ca3af; margin-top: 4px; display: block; }
         .stat-card.highlight::before { background: #f59e0b; }
@@ -82,7 +86,7 @@
             <input type="number" id="dryWeight" value="26.5" step="0.1">
         </div>
         <div class="input-group">
-            <label>干燥面积 S (cm²)</label>
+            <label>干燥面积 A (cm²)</label>
             <input type="number" id="area" value="282.2" step="0.1">
         </div>
         
@@ -99,7 +103,7 @@
         </div>
 
         <div class="section-title">
-            汽化热文献插值求湿球温度对应汽化热
+            汽化热文献插值
         </div>
         <div class="input-group">
             <label>单位选择</label>
@@ -141,12 +145,12 @@
 
             <div class="stats-grid">
                 <div class="stat-card highlight">
-                    <h3>临界含水量 (X<sub>c</sub>)</h3>
+                    <h3>临界含水量 (Xc)</h3>
                     <div class="value" id="val_xc">-</div>
                     <div class="unit">kg水/kg干料</div>
                 </div>
                 <div class="stat-card">
-                    <h3>恒速干燥速率 (U<sub>c</sub>)</h3>
+                    <h3>恒速干燥速率 (Uc)</h3>
                     <div class="value" id="val_uc">-</div>
                     <div class="unit">×10⁻⁴ kg/(s·m²)</div>
                 </div>
@@ -156,7 +160,7 @@
                     <div class="unit">W/(m²·K)</div>
                 </div>
                 <div class="stat-card">
-                    <h3>恒速段时间 (t<sub>c</sub>)</h3>
+                    <h3>恒速段时间 (tc)</h3>
                     <div class="value" id="val_tc">-</div>
                     <div class="unit">min</div>
                 </div>
@@ -185,11 +189,11 @@
                 <thead>
                     <tr>
                         <th>序号</th>
-                        <th>累计时间 t (min)</th>
-                        <th>总重量 G (g)</th>
-                        <th>干基含水量 X (kg/kg)</th>
-                        <th>平均含水量 Xavg (kg/kg)</th>
-                        <th>速率 U (10⁻⁴kg/(s·m²))</th>
+                        <th>时间 (min)</th>
+                        <th>总重量 (g)</th>
+                        <th>含水量 X</th>
+                        <th>平均 Xavg</th>
+                        <th>速率 U (10⁻⁴)</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -385,7 +389,7 @@
             
             const traceLine = { 
                 x: lineX, y: lineY, mode: 'lines', 
-                name: `拟合曲线`, 
+                name: `拟合模型 (Xc=${R.Xc.toFixed(3)})`, 
                 line: {color:'#ef4444', width:2, dash:'dash'} 
             };
             const traceXc = { 
@@ -394,16 +398,15 @@
                 line: {color:'#10b981', dash:'dot'} 
             };
 
-            // 【关键修改】图例悬浮在右上角内部
             const layoutLegend = {
                 showlegend: true,
                 legend: {
-                    x: 0.99,            // 靠右
-                    y: 0.99,            // 靠顶
-                    xanchor: 'right',   // 右对齐
-                    yanchor: 'top',     // 顶对齐
-                    bgcolor: 'rgba(255, 255, 255, 0.8)', // 半透明白底
-                    bordercolor: '#e5e7eb', // 灰色边框
+                    x: 0.99,
+                    y: 0.99,
+                    xanchor: 'right',
+                    yanchor: 'top',
+                    bgcolor: 'rgba(255, 255, 255, 0.8)',
+                    bordercolor: '#e5e7eb',
                     borderwidth: 1
                 }
             };
@@ -412,7 +415,7 @@
                 ...layoutLegend,
                 title: '干燥速率曲线',
                 xaxis: { title: '含水量 X (kg/kg)' },
-                yaxis: { title: '干燥速率 U (×10⁻⁴kg/kg·min)', range: yRange },
+                yaxis: { title: '干燥速率 U (×10⁻⁴)', range: yRange },
                 margin: { t:40, l:50, r:30, b:40 },
                 hovermode: 'closest'
             };
@@ -428,15 +431,15 @@
             const traceTc = { 
                 x:[R.tc, R.tc], y:[0, Math.max(...rawData.map(d=>d.X))], 
                 mode:'lines', 
-                name: `恒速时间`, 
+                name: `恒速时间 (${R.tc.toFixed(1)} min)`, 
                 line:{color:'#f59e0b', dash:'dash'} 
             };
             
             const layoutTime = {
-                ...layoutLegend, // 复用图例配置
+                ...layoutLegend,
                 title: '干燥曲线 (X - t)',
-                xaxis: { title: '时间 t (min)' }, 
-                yaxis: { title: '含水量 X (kg/kg)' },
+                xaxis: { title: '时间 (min)' }, 
+                yaxis: { title: '含水量 X' },
                 margin: { t:40, l:50, r:30, b:40 }
             };
 

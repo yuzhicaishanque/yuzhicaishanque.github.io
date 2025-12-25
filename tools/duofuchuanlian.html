@@ -1,269 +1,376 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <title>化工原理实验数据处理工具 (Plotly极速版)</title>
-    <link rel="stylesheet" href="https://registry.npmmirror.com/@stlite/mountable/0.50.0/files/build/stlite.css" />
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多釜串联实验数据处理 (JS极速版)</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/plotly.js/2.24.1/plotly.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
     <style>
-      #loader { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 9999; font-family: sans-serif; }
-      .spinner { border: 6px solid #f3f3f3; border-top: 6px solid #00aeef; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 15px auto; }
-      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-      .loading-text { color: #333; font-weight: bold; }
-      .loading-sub { color: #888; font-size: 12px; margin-top: 5px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f2f6; display: flex; height: 100vh; }
+        /* 侧边栏样式 */
+        .sidebar { width: 300px; background-color: #ffffff; padding: 20px; border-right: 1px solid #ddd; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 2px 0 5px rgba(0,0,0,0.05); }
+        .sidebar h2 { font-size: 1.2rem; color: #31333F; margin-bottom: 15px; border-bottom: 2px solid #ff4b4b; padding-bottom: 5px; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 0.9rem; margin-bottom: 5px; font-weight: 600; color: #31333F; }
+        .input-group input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .btn-primary { background-color: #ff4b4b; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; font-size: 1rem; transition: background 0.3s; margin-top: 10px; }
+        .btn-primary:hover { background-color: #d93e3e; }
+        .btn-download { background-color: #0083B8; margin-top: 20px; display: none; } /* 默认隐藏下载按钮 */
+        
+        /* 主内容区域 */
+        .main { flex: 1; padding: 30px; overflow-y: auto; }
+        .header { margin-bottom: 30px; }
+        .header h1 { margin: 0; color: #0e1117; }
+        .header p { color: #808495; }
+        
+        /* 卡片容器 */
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .chart-container { width: 100%; height: 500px; }
+        
+        /* 简单的加载遮罩 */
+        #loading { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 1000; justify-content: center; align-items: center; font-size: 1.5rem; font-weight: bold; color: #ff4b4b; }
     </style>
-  </head>
-  <body>
-    <div id="root" style="height: 100vh;"></div>
+</head>
+<body>
 
-    <div id="loader">
-      <div class="spinner"></div>
-      <div class="loading-text">🚀 正在加载 Plotly 引擎...</div>
-      <div class="loading-sub">无需下载字体，体积更小</div>
+<div id="loading">🚀 正在计算中...</div>
+
+<div class="sidebar">
+    <h2>⚙️ 参数设置</h2>
+    <div class="input-group">
+        <label>有效体积 V (mL)</label>
+        <input type="number" id="vol" value="1040.0">
+    </div>
+    <div class="input-group">
+        <label>流量 Q (mL/min)</label>
+        <input type="number" id="flow" value="225.0">
+    </div>
+    <div class="input-group" style="background: #e8f0fe; padding: 10px; border-radius: 5px;">
+        <label>理论停留时间 τ (s)</label>
+        <div id="theo_tau" style="font-size: 1.2rem; font-weight: bold; color: #0068c9;">277.33</div>
     </div>
 
-    <script src="https://registry.npmmirror.com/@stlite/mountable/0.50.0/files/build/stlite.js"></script>
+    <h2>📂 数据上传 (CSV)</h2>
+    <div class="input-group">
+        <label>600 rpm (必须)</label>
+        <input type="file" id="file_600" accept=".csv">
+    </div>
+    <div class="input-group">
+        <label>300 rpm (可选)</label>
+        <input type="file" id="file_300" accept=".csv">
+    </div>
+    <div class="input-group">
+        <label>0 rpm (可选)</label>
+        <input type="file" id="file_0" accept=".csv">
+    </div>
 
-    <script>
-      stlite.mount({
-        // ✅ 核心修改：去掉 matplotlib，加入 plotly
-        requirements: ["streamlit", "pandas", "numpy", "plotly", "xlsxwriter"],
-        entrypoint: "streamlit_app.py",
-        files: {
-          "streamlit_app.py": `
-import streamlit as st
-import pandas as pd
-import numpy as np
-import plotly.graph_objects as go # ✅ 引入 Plotly
-import plotly.express as px
-import math
-import io
-import warnings
+    <button class="btn-primary" onclick="startProcess()">🚀 开始处理</button>
+    <button class="btn-primary btn-download" id="btn_download" onclick="downloadExcel()">📥 下载 Excel 结果</button>
+</div>
 
-# --- 兼容性设置 ---
-if hasattr(np, 'trapezoid'):
-    trapezoid = np.trapezoid
-else:
-    trapezoid = np.trapz
+<div class="main">
+    <div class="header">
+        <h1>⚗️ 多釜串联实验数据处理 (JS 极速版)</h1>
+        <p>基于 JavaScript 原生计算，无需上传服务器，秒级出图，支持高清导出。</p>
+    </div>
 
-warnings.filterwarnings('ignore')
+    <div class="card">
+        <h3>📊 1号釜不同转速 E(t) 对比</h3>
+        <div id="chart_compare" class="chart-container"></div>
+    </div>
 
-# --- 页面配置 ---
-st.set_page_config(page_title="多釜串联处理", layout="wide", page_icon="⚗️")
+    <div class="card" id="detail_container" style="display:none;">
+        <h3>📈 600 rpm 各釜模型拟合详情</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div id="chart_detail_1" style="height: 350px;"></div>
+            <div id="chart_detail_2" style="height: 350px;"></div>
+            <div id="chart_detail_3" style="height: 350px;"></div>
+            <div id="chart_detail_4" style="height: 350px;"></div>
+        </div>
+    </div>
+</div>
 
-# --- 核心算法 ---
-def get_theoretical_E(t, tau, N):
-    if N < 1: N = 1
-    if tau == 0: return np.zeros_like(t)
-    with np.errstate(divide='ignore', invalid='ignore'):
-        coeff = (N**N) / (tau**N * math.gamma(N))
-        term = t**(N-1)
-        exp_term = np.exp(-N * t / tau)
-        E = coeff * term * exp_term
-    E[np.isnan(E)] = 0
-    return E
-
-def sample_dataframe(df, num_points=25):
-    if len(df) <= num_points: return df
-    indices = np.linspace(0, len(df) - 1, num_points, dtype=int)
-    indices = sorted(list(set(indices)))
-    return df.iloc[indices].copy()
-
-def process_uploaded_file(uploaded_file, col_target, label):
-    try:
-        try:
-            df = pd.read_csv(uploaded_file, delimiter=';', encoding='utf-8')
-        except:
-            uploaded_file.seek(0)
-            df = pd.read_csv(uploaded_file, delimiter=';', encoding='gbk')
-        if len(df.columns) < 2:
-            uploaded_file.seek(0)
-            df = pd.read_csv(uploaded_file, delimiter=',')
-    except Exception as e:
-        return None, None, None, f"读取失败: {e}"
-
-    time_col = df.columns[0]
-    try:
-        df['Time_Obj'] = pd.to_datetime(df[time_col])
-    except:
-        df['Time_Obj'] = pd.to_datetime(df[time_col], dayfirst=True, errors='coerce')
-
-    start_t = df['Time_Obj'].iloc[0]
-    t_arr = (df['Time_Obj'] - start_t).dt.total_seconds().values
+<script>
+    // ==========================================
+    // 1. 数学工具库 (替代 Numpy/Scipy)
+    // ==========================================
     
-    idx_map = {'1号釜': 1, '2号釜': 2, '3号釜': 3, '4号釜': 4}
-    target_idx = -1
-    
-    if col_target in df.columns:
-        raw_C = df[col_target].values
-    else:
-        for k, v in idx_map.items():
-            if k in label:
-                target_idx = v
-                break
-        if target_idx != -1 and target_idx < len(df.columns):
-            raw_C = df.iloc[:, target_idx].values
-        else:
-            return None, None, None, f"找不到列: {col_target}"
+    // 梯形积分 (对应 np.trapz)
+    function trapz(y, x) {
+        let sum = 0;
+        for (let i = 0; i < x.length - 1; i++) {
+            sum += 0.5 * (y[i+1] + y[i]) * (x[i+1] - x[i]);
+        }
+        return sum;
+    }
 
-    baseline = raw_C[0]
-    net_C = np.maximum(raw_C - baseline, 0)
-    area = trapezoid(net_C, t_arr)
-    moment_1 = trapezoid(t_arr * net_C, t_arr)
-    t_mean = moment_1 / area if area != 0 else 0
-    moment_2 = trapezoid(t_arr**2 * net_C, t_arr)
-    variance = (moment_2 / area) - t_mean**2 if area != 0 else 0
-    N_model = (t_mean**2) / variance if variance != 0 else 0
-    E_t = net_C / area if area != 0 else np.zeros_like(net_C)
-    full_df = pd.DataFrame({'原始时间': df[time_col], '时间 (s)': t_arr, '电导率原始值': raw_C, '电导率(净)': net_C, 'C*t': net_C * t_arr, 'C*t^2': net_C * (t_arr**2)})
-    sampled = sample_dataframe(full_df, 25)
-    stats = {'sum_C': area, 'sum_Ct': moment_1, 'sum_Ct2': moment_2, 't_mean': t_mean, 'variance': variance, 'N_model': N_model}
-    return sampled, t_arr, E_t, stats
+    // Gamma 函数 (Lanczos近似，替代 math.gamma)
+    function gamma(z) {
+        if (z < 0.5) return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z));
+        z -= 1;
+        let x = 0.99999999999980993;
+        let p = [676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+        for (let i = 0; i < p.length; i++) x += p[i] / (z + i + 1);
+        let t = z + p.length - 0.5;
+        return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
+    }
 
-# --- 界面部分 ---
-st.title("⚗️ 多釜串联数据处理 (交互图表版)")
-st.caption("使用 Plotly 引擎：无需下载字体，原生支持中文，支持缩放/悬停查看数据")
-
-with st.sidebar:
-    st.header("⚙️ 参数设置")
-    vol_input = st.number_input("体积 V (mL)", value=1040.0)
-    flow_input = st.number_input("流量 Q (mL/min)", value=225.0)
-    if flow_input != 0:
-        theo_tau = (vol_input / flow_input) * 60
-    else:
-        theo_tau = 0
-    st.info(f"τ = {theo_tau:.2f} s")
-    st.divider()
-    st.header("📂 数据上传")
-    file_600 = st.file_uploader("600 rpm (必填)", type=['csv'])
-    file_300 = st.file_uploader("300 rpm (可选)", type=['csv'])
-    file_0 = st.file_uploader("0 rpm (可选)", type=['csv'])
-    process_btn = st.button("🚀 开始处理", type="primary")
-
-if process_btn:
-    if not file_600:
-        st.error("请先上传 600 rpm 数据")
-    else:
-        output = io.BytesIO()
-        writer = pd.ExcelWriter(output, engine='xlsxwriter')
-        results_cache = {}
+    // 理论 E(t) 计算
+    function getTheoreticalE(tArr, tau, N) {
+        if (N < 1) N = 1;
+        if (tau === 0) return tArr.map(() => 0);
         
-        tasks = [
-            (file_600, '1#釜电导率值', 1, '1号釜 (600 rpm)', '600rpm_1'),
-            (file_600, '2#釜电导率值', 2, '2号釜 (600 rpm)', '600rpm_2'),
-            (file_600, '3#釜电导率值', 3, '3号釜 (600 rpm)', '600rpm_3'),
-            (file_600, '4#釜电导率值', 4, '4号釜 (600 rpm)', '600rpm_4'),
-            (file_300, '1#釜电导率值', 1, '1号釜 (300 rpm)', '300rpm_1'),
-            (file_0,   '1#釜电导率值', 1, '1号釜 (0 rpm)',   '0rpm_1')
-        ]
-        
-        for i, (f_obj, col, theo_N, label, sheet) in enumerate(tasks):
-            if f_obj is None: continue
-            f_obj.seek(0)
-            sampled, t_full, E_full, stats = process_uploaded_file(f_obj, col, label)
-            if sampled is None:
-                st.warning(f"{label} 失败: {stats}")
-                continue
+        const coeff = (Math.pow(N, N)) / (Math.pow(tau, N) * gamma(N));
+        return tArr.map(t => {
+            if (t < 0) return 0;
+            return coeff * Math.pow(t, N - 1) * Math.exp(-N * t / tau);
+        });
+    }
+
+    // ==========================================
+    // 2. 业务逻辑
+    // ==========================================
+
+    // 全局变量存储处理后的数据，用于导出 Excel
+    let globalResults = {}; 
+
+    // 自动更新理论 Tau
+    document.querySelectorAll('#vol, #flow').forEach(el => {
+        el.addEventListener('input', () => {
+            const V = parseFloat(document.getElementById('vol').value);
+            const Q = parseFloat(document.getElementById('flow').value);
+            const tau = Q === 0 ? 0 : (V / Q) * 60;
+            document.getElementById('theo_tau').innerText = tau.toFixed(2);
+        });
+    });
+
+    async function startProcess() {
+        const file600 = document.getElementById('file_600').files[0];
+        const file300 = document.getElementById('file_300').files[0];
+        const file0 = document.getElementById('file_0').files[0];
+
+        if (!file600) { alert("❌ 请至少上传 600 rpm 的数据文件！"); return; }
+
+        document.getElementById('loading').style.display = 'flex';
+        globalResults = {}; // 清空旧数据
+
+        const V = parseFloat(document.getElementById('vol').value);
+        const Q = parseFloat(document.getElementById('flow').value);
+        const theoTau = (V / Q) * 60;
+
+        try {
+            // 定义任务列表
+            const tasks = [
+                { file: file600, colName: '1号釜', theoN: 1, rpm: '600' },
+                { file: file600, colName: '2号釜', theoN: 2, rpm: '600' },
+                { file: file600, colName: '3号釜', theoN: 3, rpm: '600' },
+                { file: file600, colName: '4号釜', theoN: 4, rpm: '600' },
+                { file: file300, colName: '1号釜', theoN: 1, rpm: '300' },
+                { file: file0,   colName: '1号釜', theoN: 1, rpm: '0' }
+            ];
+
+            // 绘图数据容器
+            const compareTraces = [];
             
-            results_cache[label] = {'t': t_full, 'E': E_full, 'stats': stats}
+            // 循环处理每个任务
+            for (let task of tasks) {
+                if (!task.file) continue;
+
+                // 1. 读取 CSV (使用 Promise 封装 FileReader)
+                const text = await readFileAsText(task.file);
+                
+                // 2. 解析 CSV (PapaParse)
+                const parseResult = Papa.parse(text, { 
+                    header: true, 
+                    dynamicTyping: true, 
+                    skipEmptyLines: true,
+                    encoding: "GBK" // 尝试 GBK 读取
+                });
+                
+                let data = parseResult.data;
+                let meta = parseResult.meta;
+
+                // 简单的容错：如果 GBK 读出来乱码或者只有1列，可能分隔符不对
+                if (meta.fields.length < 2) {
+                     // 简单粗暴处理：如果 CSV 解析失败，用户需另存为 UTF-8，
+                     // 这里假设 PapaParse 足够强大，通常能自动识别分隔符
+                }
+
+                // 3. 提取列数据
+                // 寻找时间列 (通常是第1列)
+                const timeKey = meta.fields[0];
+                // 寻找目标列 (模糊匹配 '1号釜' 等)
+                const targetKey = meta.fields.find(f => f.includes(task.colName));
+
+                if (!targetKey) { console.warn(`找不到列: ${task.colName}`); continue; }
+
+                // 数据预处理：转为纯数组，处理时间
+                let rawT = [], rawC = [];
+                // 假设时间格式是 "yyyy/mm/dd HH:MM:SS" 或直接是秒
+                const startTime = new Date(data[0][timeKey]).getTime();
+                
+                data.forEach(row => {
+                    if (row[timeKey] && row[targetKey] !== undefined) {
+                        // 计算秒数差
+                        let t_sec = (new Date(row[timeKey]).getTime() - startTime) / 1000;
+                        if(isNaN(t_sec)) t_sec = parseFloat(row[timeKey]); // 假如本身就是秒
+
+                        rawT.push(t_sec);
+                        rawC.push(row[targetKey]);
+                    }
+                });
+
+                // 4. 核心计算 (JS 复刻 Python 逻辑)
+                const baseline = rawC[0];
+                const netC = rawC.map(c => Math.max(c - baseline, 0));
+                
+                const area = trapz(netC, rawT);
+                const moment1 = trapz(rawT.map((t, i) => t * netC[i]), rawT);
+                const tMean = area !== 0 ? moment1 / area : 0;
+                
+                const moment2 = trapz(rawT.map((t, i) => t*t * netC[i]), rawT);
+                const variance = area !== 0 ? (moment2 / area) - tMean*tMean : 0;
+                const N_model = variance !== 0 ? (tMean*tMean) / variance : 0;
+
+                const E_t = area !== 0 ? netC.map(c => c / area) : netC.map(() => 0);
+
+                // 存入全局结果
+                const key = `${task.colName} (${task.rpm} rpm)`;
+                globalResults[key] = {
+                    t: rawT, E: E_t, rawC: rawC, netC: netC,
+                    stats: { tMean, variance, N_model, area },
+                    theoN: task.theoN
+                };
+
+                // 添加对比图数据 (仅1号釜)
+                if (task.colName === '1号釜') {
+                    compareTraces.push({
+                        x: rawT, y: E_t, mode: 'lines', name: `${task.rpm} rpm 实测`,
+                        line: { width: 2 }
+                    });
+                }
+            }
+
+            // ==========================================
+            // 5. 绘图 (Plotly.js)
+            // ==========================================
             
-            # Excel 导出
-            summary = pd.DataFrame([['N_model', f"{stats['N_model']:.2f}"], ['Variance', f"{stats['variance']:.2f}"]])
-            sampled.to_excel(writer, sheet_name=sheet, index=False)
-            summary.to_excel(writer, sheet_name=sheet, startcol=6, index=False)
+            // 图1：转速对比
+            const maxT = Math.max(...compareTraces[0].x);
+            const tRef = Array.from({length: 500}, (_, i) => i * maxT / 499);
+            const ERef = getTheoreticalE(tRef, theoTau, 1);
+            
+            compareTraces.push({
+                x: tRef, y: ERef, mode: 'lines', name: '理论全混流 (N=1)',
+                line: { color: 'black', dash: 'dash', width: 1.5 }
+            });
 
-        writer.close()
-        st.success("✅ 处理完成")
-        st.download_button("📥 下载 Excel 报表", data=output.getvalue(), file_name="result.xlsx")
+            const layoutCommon = {
+                font: { family: "Microsoft YaHei, sans-serif" }, // 原生支持中文
+                xaxis: { title: '时间 t (s)' },
+                yaxis: { title: 'E(t)' },
+                hovermode: 'x unified',
+                template: 'simple_white',
+                margin: { t: 40, r: 20, b: 40, l: 50 }
+            };
 
-        st.subheader("📊 交互式结果预览")
-        tab1, tab2 = st.tabs(["⚡ 转速对比 (图5)", "📈 详细模型拟合"])
-        
-        # --- ✅ Plotly 绘图逻辑 ---
-        
-# --- 定义一个通用的下载配置 (关键修改) ---
-        # scale=3 表示下载 3 倍高清图，适合打印和 Word 报告
-        dl_config = {
-            'toImageButtonOptions': {
-                'format': 'png',        # 下载格式: png, svg, jpeg, webp
-                'filename': '实验图表', # 下载的文件名
-                'height': 600,
-                'width': 800,
-                'scale': 3              # 🔍 关键！3倍清晰度，告别模糊
-            },
-            'displayModeBar': True,     # 强制显示工具栏
-            'displaylogo': False,       # 隐藏 Plotly 的 logo，更干净
-            # 只保留下载、缩放、平移等有用按钮
-            'modeBarButtonsToRemove': ['lasso2d', 'select2d'] 
+            const configDl = {
+                toImageButtonOptions: { format: 'png', filename: '转速对比', height: 600, width: 800, scale: 3 },
+                displayModeBar: true, displaylogo: false
+            };
+
+            Plotly.newPlot('chart_compare', compareTraces, {...layoutCommon, title: '1号釜不同转速 E(t) 对比'}, configDl);
+
+            // 图2：详细拟合 (600 rpm 的 4 个釜)
+            document.getElementById('detail_container').style.display = 'block';
+            
+            const detailKeys = ['1号釜 (600 rpm)', '2号釜 (600 rpm)', '3号釜 (600 rpm)', '4号釜 (600 rpm)'];
+            detailKeys.forEach((k, idx) => {
+                if (globalResults[k]) {
+                    const res = globalResults[k];
+                    // 理论曲线
+                    const ETheo = getTheoreticalE(tRef, res.stats.tMean, res.theoN);
+                    
+                    const traces = [
+                        { x: res.t, y: res.E, mode: 'lines', name: '实测', line: {width: 2} },
+                        { x: tRef, y: ETheo, mode: 'lines', name: `理论N=${res.theoN}`, line: {color:'black', dash:'dash'} }
+                    ];
+                    
+                    const title = `${k} (N=${res.stats.N_model.toFixed(2)})`;
+                    Plotly.newPlot(`chart_detail_${idx+1}`, traces, 
+                        {...layoutCommon, title: title, height: 350, margin: {t:40,b:30,l:40,r:10}}, 
+                        {...configDl, toImageButtonOptions: {...configDl.toImageButtonOptions, filename: k}}
+                    );
+                }
+            });
+
+            document.getElementById('btn_download').style.display = 'block';
+
+        } catch (err) {
+            console.error(err);
+            alert("处理出错：" + err.message + "\n请检查CSV文件格式是否正确。");
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+
+    // 读取文件的辅助函数
+    function readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(e);
+            // 默认尝试 GBK 读取，适应中文 Excel CSV
+            reader.readAsText(file, 'GBK'); 
+        });
+    }
+
+    // ==========================================
+    // 6. Excel 导出 (SheetJS)
+    // ==========================================
+    function downloadExcel() {
+        const wb = XLSX.utils.book_new();
+
+        // 遍历所有结果，每个结果一个 Sheet
+        for (let [sheetName, res] of Object.entries(globalResults)) {
+            // 准备表头数据
+            const sheetData = [
+                ['原始时间', '时间(s)', '电导率原始', '电导率(净)', 'C*t', 'C*t^2', ' ', '统计项', '数值']
+            ];
+
+            // 填充数据行
+            for (let i = 0; i < res.t.length; i++) {
+                let row = [
+                    '-', // 原始时间暂不回填
+                    res.t[i],
+                    res.rawC[i],
+                    res.netC[i],
+                    res.netC[i] * res.t[i],
+                    res.netC[i] * res.t[i] * res.t[i],
+                    '', // 空列
+                ];
+
+                // 在右侧填充统计数据 (仅前几行)
+                if (i === 0) row.push('平均停留时间', res.stats.tMean);
+                if (i === 1) row.push('方差', res.stats.variance);
+                if (i === 2) row.push('模拟级数 N', res.stats.N_model);
+                if (i === 3) row.push('积分面积', res.stats.area);
+
+                sheetData.push(row);
+            }
+            
+            // 只有字母数字下划线中文能做 sheet 名，清理一下特殊字符
+            const safeName = sheetName.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '_').substring(0, 30);
+            const ws = XLSX.utils.aoa_to_sheet(sheetData);
+            XLSX.utils.book_append_sheet(wb, ws, safeName);
         }
 
-        with tab1:
-            fig = go.Figure()
-            colors = {'600': '#1f77b4', '300': '#ff7f0e', '0': '#d62728'}
-            max_t = 0
-            
-            for rpm in ['600', '300', '0']:
-                key = f'1号釜 ({rpm} rpm)'
-                if key in results_cache:
-                    d = results_cache[key]
-                    fig.add_trace(go.Scatter(x=d['t'], y=d['E'], mode='lines', 
-                                           name=f'{rpm} rpm 实测', line=dict(color=colors[rpm], width=2)))
-                    max_t = max(max_t, d['t'].max())
-            
-            if max_t > 0:
-                t_ref = np.linspace(0, max_t, 500)
-                E_ref = get_theoretical_E(t_ref, theo_tau, 1)
-                fig.add_trace(go.Scatter(x=t_ref, y=E_ref, mode='lines', 
-                                       name='理论全混流 (N=1)', line=dict(color='black', dash='dash', width=1.5)))
+        XLSX.writeFile(wb, "多釜串联实验结果.xlsx");
+    }
+</script>
 
-            fig.update_layout(
-                title="<b>1号釜不同转速下 E(t) 曲线对比</b>", # 加粗标题
-                xaxis_title="<b>时间 t (s)</b>",
-                yaxis_title="<b>E(t) 分布</b>",
-                hovermode="x unified",
-                template="simple_white", # 使用更适合打印的白底黑线模板
-                legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99, bgcolor="rgba(255,255,255,0.8)")
-            )
-            # ✅ 应用下载配置
-            st.plotly_chart(fig, use_container_width=True, config=dl_config)
-            
-        with tab2:
-            st.markdown("##### 🔍 各级釜实测数据与理论模型对比")
-            col1, col2 = st.columns(2)
-            cols = [col1, col2, col1, col2]
-            targets = [('1号釜 (600 rpm)', 1), ('2号釜 (600 rpm)', 2),
-                       ('3号釜 (600 rpm)', 3), ('4号釜 (600 rpm)', 4)]
-            
-            for i, (key, theo_N) in enumerate(targets):
-                if key in results_cache:
-                    with cols[i]:
-                        d = results_cache[key]
-                        fig = go.Figure()
-                        
-                        fig.add_trace(go.Scatter(x=d['t'], y=d['E'], mode='lines', name='实测值', line=dict(width=2)))
-                        
-                        t_ref = np.linspace(0, d['t'].max(), 500)
-                        E_theo = get_theoretical_E(t_ref, d['stats']['t_mean'], theo_N)
-                        fig.add_trace(go.Scatter(x=t_ref, y=E_theo, mode='lines', 
-                                               name=f'理论N={theo_N}', line=dict(dash='dash', color='black', width=1.5)))
-                        
-                        fig.update_layout(
-                            title=f"<b>{key}</b> (N={d['stats']['N_model']:.2f})",
-                            xaxis_title="时间 (s)",
-                            yaxis_title="E(t)",
-                            margin=dict(l=40, r=20, t=40, b=40),
-                            height=350,
-                            template="simple_white",
-                            legend=dict(x=0.65, y=0.95, bgcolor="rgba(255,255,255,0.5)")
-                        )
-                        # ✅ 应用下载配置 (每个小图都有下载按钮)
-                        st.plotly_chart(fig, use_container_width=True, config=dl_config)
-`
-        },
-      }, document.getElementById("root")).then(() => {
-        document.getElementById("loader").style.display = "none";
-      });
-    </script>
-  </body>
+</body>
 </html>

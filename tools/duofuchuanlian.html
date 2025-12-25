@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多釜串联实验数据处理</title>
+    <title>多釜串联实验数据处理 (完美报告版)</title>
     
     <script src="https://cdn.staticfile.org/plotly.js/2.24.1/plotly.min.js"></script>
     <script src="https://cdn.staticfile.org/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -46,13 +46,13 @@
     <div class="input-group"><label>0 rpm (可选)</label><input type="file" id="file_0" accept=".csv"></div>
 
     <button class="btn-primary" onclick="startProcess()">🚀 开始处理</button>
-    <button class="btn-primary btn-download" id="btn_download" onclick="downloadExcel()">📥 下载 Excel 结果</button>
+    <button class="btn-primary btn-download" id="btn_download" onclick="downloadExcel()">📥 下载 Excel 报告</button>
 </div>
 
 <div class="main">
     <div style="margin-bottom: 20px;">
-        <h1 style="margin: 0;">⚗️ 多釜串联数据处理</h1>
-        <p style="color: #666; margin-top: 5px;">上传不同转速下的 CSV 数据，计算并对比各釜模型拟合结果。</p>
+        <h1 style="margin: 0;">⚗️ 多釜串联数据处理 (报告专用版)</h1>
+        <p style="color: #666;">自动抽样 25 组数据，包含 L(t) 积分表与完整统计指标。</p>
     </div>
 
     <div class="card">
@@ -129,8 +129,6 @@
         const theoTau = (V / Q) * 60;
 
         try {
-            // 定义任务: colIndex 是回退机制，如果找不到名字，就找第几列 (从0开始数)
-            // 假设 CSV 结构是: 时间, 1号釜, 2号釜, 3号釜, 4号釜...
             const tasks = [
                 { file: file600, keyword: '1号', colIndex: 1, theoN: 1, rpm: '600', name: '1号釜' },
                 { file: file600, keyword: '2号', colIndex: 2, theoN: 2, rpm: '600', name: '2号釜' },
@@ -145,38 +143,27 @@
             for (let task of tasks) {
                 if (!task.file) continue;
                 
-                // 1. 读取并解析 CSV
                 const text = await readFileAsText(task.file);
                 const parseResult = Papa.parse(text, { 
-                    header: true, dynamicTyping: true, skipEmptyLines: true, encoding: "GBK" // 默认 GBK，适应 Excel
+                    header: true, dynamicTyping: true, skipEmptyLines: true, encoding: "GBK"
                 });
                 
                 let data = parseResult.data;
                 let meta = parseResult.meta;
                 let fields = meta.fields;
 
-                // 2. 智能寻找列名
-                // A计划：找包含关键字的列 (比如包含 "1号")
                 let targetKey = fields.find(f => f.includes(task.keyword));
-                
-                // B计划：如果没找到，或者列名乱码，直接按位置取 (Time是第0列，Target是 colIndex)
-                let usedFallback = false;
                 if (!targetKey) {
                     if (fields.length > task.colIndex) {
                         targetKey = fields[task.colIndex];
-                        usedFallback = true;
-                        console.log(`⚠️ 未找到"${task.keyword}"，自动使用第 ${task.colIndex+1} 列: ${targetKey}`);
                     } else {
-                        console.warn(`❌ 无法找到 ${task.name} 的数据列，已跳过。检测到的列名: ${fields}`);
-                        continue; // 跳过此任务
+                        continue;
                     }
                 }
 
-                // 3. 提取数据
-                const timeKey = fields[0]; // 默认第1列是时间
-                let rawT = [], rawC = [];
+                const timeKey = fields[0];
+                let rawT = [], rawC = [], rawTimeStr = []; // 新增：rawTimeStr
                 
-                // 获取起始时间
                 let startTime = 0;
                 if (data.length > 0 && data[0][timeKey]) {
                     startTime = tryParseTime(data[0][timeKey]);
@@ -188,30 +175,27 @@
                     
                     if (val !== undefined && tRaw !== undefined) {
                         let t_sec = tryParseTime(tRaw) - startTime;
-                        // 如果时间解析出来是NaN，说明可能是直接的秒数，不需要减 startTime
                         if (isNaN(t_sec)) t_sec = parseFloat(tRaw);
-                        if (t_sec < 0) t_sec = parseFloat(tRaw); // 容错
+                        if (t_sec < 0) t_sec = parseFloat(tRaw);
 
                         rawT.push(t_sec);
                         rawC.push(parseFloat(val));
+                        // 保存原始时间字符串，如果是日期对象则转字符串
+                        rawTimeStr.push(tRaw); 
                     }
                 });
 
-                if (rawT.length === 0) {
-                    console.warn(`${task.name} 数据为空，跳过`);
-                    continue;
-                }
+                if (rawT.length === 0) continue;
 
-                // 4. 计算逻辑
                 const baseline = rawC[0];
                 const netC = rawC.map(c => Math.max(c - baseline, 0));
                 
                 const area = trapz(netC, rawT);
-                if (area === 0) continue; // 防止除零
+                if (area === 0) continue; 
 
+                // 矩计算
                 const moment1 = trapz(rawT.map((t, i) => t * netC[i]), rawT);
                 const tMean = moment1 / area;
-                
                 const moment2 = trapz(rawT.map((t, i) => t*t * netC[i]), rawT);
                 const variance = (moment2 / area) - tMean*tMean;
                 const N_model = variance !== 0 ? (tMean*tMean) / variance : 0;
@@ -219,8 +203,8 @@
 
                 const key = `${task.name} (${task.rpm} rpm)`;
                 globalResults[key] = {
-                    t: rawT, E: E_t, rawC: rawC, netC: netC,
-                    stats: { tMean, variance, N_model, area },
+                    t: rawT, E: E_t, rawC: rawC, netC: netC, rawTimeStr: rawTimeStr,
+                    stats: { tMean, variance, N_model, area, moment1, moment2 },
                     theoN: task.theoN
                 };
 
@@ -232,13 +216,12 @@
                 }
             }
 
-            // ⚠️ 关键修复：防止没有数据时画图报错
             if (compareTraces.length === 0) {
-                alert("❌ 处理失败：未能提取到有效数据。\n\n可能原因：\n1. CSV文件为空\n2. CSV格式不是标准的逗号分隔\n3. 没找到 '1号釜' 相关列且自动匹配失败。\n\n请按 F12 打开控制台查看详细列名信息。");
+                alert("❌ 未提取到有效数据，请检查CSV格式。");
                 return;
             }
 
-            // 5. 绘图
+            // 绘图
             const maxT = Math.max(...compareTraces[0].x);
             const tRef = Array.from({length: 500}, (_, i) => i * maxT / 499);
             const ERef = getTheoreticalE(tRef, theoTau, 1);
@@ -248,13 +231,20 @@
                 line: { color: 'black', dash: 'dash', width: 1.5 }
             });
 
+            // 修复样式：原点对齐，标题不重叠
             const layoutCommon = {
                 font: { family: "Microsoft YaHei, sans-serif" },
-                xaxis: { title: '时间 t (s)' },
-                yaxis: { title: 'E(t)' },
+                xaxis: { 
+                    title: { text: '时间 t (s)', standoff: 20 },
+                    range: [0, null], rangemode: 'nonnegative', zeroline: true 
+                },
+                yaxis: { 
+                    title: { text: 'E(t)', standoff: 20 },
+                    range: [0, null], rangemode: 'nonnegative', zeroline: true 
+                },
                 hovermode: 'x unified',
                 template: 'simple_white',
-                margin: { t: 40, r: 20, b: 40, l: 50 }
+                margin: { t: 50, r: 30, b: 80, l: 80 }
             };
 
             const configDl = {
@@ -264,7 +254,6 @@
 
             Plotly.newPlot('chart_compare', compareTraces, {...layoutCommon, title: '1号釜不同转速 E(t) 对比'}, configDl);
 
-            // 详情图
             document.getElementById('detail_container').style.display = 'block';
             const detailKeys = ['1号釜 (600 rpm)', '2号釜 (600 rpm)', '3号釜 (600 rpm)', '4号釜 (600 rpm)'];
             
@@ -278,11 +267,10 @@
                         { x: tRef, y: ETheo, mode: 'lines', name: `理论N=${res.theoN}`, line: {color:'black', dash:'dash'} }
                     ];
                     Plotly.newPlot(domId, traces, 
-                        {...layoutCommon, title: `${k} (N=${res.stats.N_model.toFixed(2)})`, height: 350, margin: {t:40,b:30,l:40,r:10}}, 
+                        {...layoutCommon, title: `${k} (N=${res.stats.N_model.toFixed(2)})`, height: 350}, 
                         {...configDl, toImageButtonOptions: {...configDl.toImageButtonOptions, filename: k}}
                     );
                 } else {
-                    // 如果某个釜没数据，显示空白或提示
                     document.getElementById(domId).innerHTML = `<div style='text-align:center;line-height:350px;color:#ccc;'>无 ${k} 数据</div>`;
                 }
             });
@@ -297,43 +285,114 @@
         }
     }
 
-    // 辅助：解析时间
+    // 辅助函数
     function tryParseTime(input) {
         if (typeof input === 'number') return input;
-        // 尝试解析 "2023/12/12 10:00:00" 这种格式
         const t = new Date(input).getTime();
-        if (!isNaN(t)) return t / 1000; // 返回秒
+        if (!isNaN(t)) return t / 1000;
         return parseFloat(input);
     }
 
-    // 辅助：读取文件
     function readFileAsText(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (e) => resolve(e.target.result);
             reader.onerror = (e) => reject(e);
-            // 这里我们先尝试 GBK (Excel 默认)，如果乱码通常会变成 
             reader.readAsText(file, 'GBK'); 
         });
     }
 
+    // ✅ 核心修改：Excel 导出逻辑
     function downloadExcel() {
         if (typeof XLSX === 'undefined') { alert("XLSX 库未加载"); return; }
         const wb = XLSX.utils.book_new();
+
         for (let [sheetName, res] of Object.entries(globalResults)) {
-            const sheetData = [['时间(s)', '电导率(净)', 'E(t)', '', '统计项', '数值']];
-            for (let i = 0; i < res.t.length; i++) {
-                let row = [res.t[i], res.netC[i], res.E[i], ''];
-                if (i === 0) row.push('平均停留时间', res.stats.tMean);
-                if (i === 1) row.push('方差', res.stats.variance);
-                if (i === 2) row.push('模拟级数 N', res.stats.N_model);
+            // L(t) 在此语境下即 Net Concentration (净电导率)
+            const L = res.netC; 
+            const t = res.t;
+            const rawTime = res.rawTimeStr;
+            const rawC = res.rawC;
+
+            // 抽样逻辑：只取约 25 个点
+            const targetCount = 25;
+            const totalLen = t.length;
+            const step = Math.max(1, Math.floor(totalLen / targetCount));
+            
+            // 表头
+            const sheetData = [
+                ['原始时间', '原始电导率', 't (s)', 'L(t) (净值)', 't*L(t)', 't^2*L(t)', '', '统计项', '计算结果']
+            ];
+
+            // 填充抽样数据
+            let sampleRowIndex = 1; // 数据写入Excel的行索引
+            for (let i = 0; i < totalLen; i += step) {
+                // 防止越界
+                if (i >= totalLen) break;
+
+                const val_L = L[i];
+                const val_t = t[i];
+                const val_tL = val_t * val_L;
+                const val_t2L = val_t * val_t * val_L;
+
+                // 每一行数据
+                let row = [
+                    rawTime[i],  // 原始时间
+                    rawC[i],     // 原始电导率
+                    val_t,       // t
+                    val_L,       // L(t)
+                    val_tL,      // t*L(t)
+                    val_t2L,     // t^2*L(t)
+                    '',          // 空列，用于分隔
+                    '',          // 统计项名 (后面填充)
+                    ''           // 统计数值 (后面填充)
+                ];
+                
                 sheetData.push(row);
+                sampleRowIndex++;
             }
+
+            // 确保最后一行数据也包含进去（如果是重点）
+            // 这里为了保持 25 行左右，就不强行加最后一行了，均匀抽样即可
+
+            // 填充右侧统计数据 (基于全量数据计算，更准确)
+            // L(t)之和 -> 面积 (Area)
+            // t*L(t)之和 -> Moment 1
+            // t^2*L(t)之和 -> Moment 2
+            
+            // 安全填充函数
+            const setStat = (rowIdx, name, val) => {
+                if (sheetData[rowIdx]) {
+                    sheetData[rowIdx][7] = name;
+                    sheetData[rowIdx][8] = val; // 保留2位小数在Excel显示时由用户控制，或者这里toFixed
+                }
+            };
+
+            setStat(1, 'L(t)之和 (积分面积)', res.stats.area); // 对应积分面积
+            setStat(2, 't*L(t)之和 (一阶矩)', res.stats.moment1);
+            setStat(3, 't^2*L(t)之和 (二阶矩)', res.stats.moment2);
+            setStat(4, '平均停留时间 (s)', res.stats.tMean);
+            setStat(5, '方差', res.stats.variance);
+            setStat(6, '模拟釜数 N', res.stats.N_model);
+            
+            // 添加一个说明
+            if (sheetData[8]) {
+                sheetData[8][7] = '说明:';
+                sheetData[8][8] = '统计值基于全部数据计算';
+            }
+
             const safeName = sheetName.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '_').substring(0, 30);
             const ws = XLSX.utils.aoa_to_sheet(sheetData);
+            
+            // 设置列宽稍微好看点
+            ws['!cols'] = [
+                {wch: 15}, {wch: 12}, {wch: 10}, {wch: 12}, {wch: 15}, {wch: 15}, 
+                {wch: 5}, {wch: 25}, {wch: 15}
+            ];
+
             XLSX.utils.book_append_sheet(wb, ws, safeName);
         }
-        XLSX.writeFile(wb, "实验处理结果.xlsx");
+        XLSX.writeFile(wb, "多釜串联实验报告数据.xlsx");
     }
 </script>
 

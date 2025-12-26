@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>填料塔综合实验处理 (1-2-5 刻度版)</title>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #0f766e;
+            --bg: #f8fafc;
+            --panel-bg: #ffffff;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: "Times New Roman", "SimSun", serif;
+            margin: 0; padding: 0;
+            background-color: var(--bg); color: #333;
+        }
+
+        header {
+            background: white; padding: 20px; text-align: center;
+            border-bottom: 3px solid var(--primary);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        h1 { margin: 0; color: var(--primary); font-size: 1.6rem; }
+
+        .tabs {
+            display: flex; justify-content: center; background: #fff;
+            border-bottom: 1px solid var(--border); margin-bottom: 20px;
+        }
+        .tab-btn {
+            padding: 15px 30px; border: none; background: transparent;
+            font-size: 16px; font-weight: bold; cursor: pointer; color: #64748b;
+            border-bottom: 3px solid transparent; transition: all 0.3s;
+            font-family: "Times New Roman", serif;
+        }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: #f0fdfa; }
+
+        .container {
+            max-width: 1350px; margin: 0 auto 40px; padding: 0 20px;
+            display: none; animation: fadeIn 0.3s ease-in-out;
+        }
+        .container.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .panel {
+            background: var(--panel-bg); padding: 20px; border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid var(--border);
+        }
+
+        .settings-bar {
+            display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; align-items: center;
+            background: #f1f5f9; padding: 12px; border-radius: 6px; margin-bottom: 20px;
+        }
+        .setting-item label { font-weight: bold; font-size: 0.9em; margin-right: 5px; }
+        .setting-item input { 
+            width: 70px; text-align: center; border: 1px solid #cbd5e1; 
+            padding: 4px; border-radius: 4px; font-family: "Times New Roman";
+        }
+
+        table { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 10px; }
+        th, td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: center; }
+        thead th { background-color: var(--primary); color: white; padding: 8px; }
+        th.row-header { background-color: #f8fafc; text-align: left; padding-left: 10px; width: 280px; }
+        
+        input.data-inp {
+            width: 90%; padding: 2px; border: 1px solid #e2e8f0; text-align: center;
+            font-family: inherit; font-weight: bold; color: #0f766e;
+        }
+        input.data-inp:focus { outline: 2px solid var(--primary); background: #f0fdfa; }
+
+        .btn { border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; font-family: "Times New Roman"; }
+        .btn-add { background: white; border: 1px dashed var(--primary); color: var(--primary); margin-left: 10px; font-size: 0.8em; }
+        .btn-export { background-color: #10b981; color: white; margin-top: 10px; width: 100%; }
+        .btn-del { color: #ef4444; background: none; font-size: 1.2em; padding: 0 5px; }
+
+        .grid-layout { display: grid; grid-template-columns: 550px 1fr; gap: 20px; }
+        @media (max-width: 1100px) { .grid-layout { grid-template-columns: 1fr; } }
+        
+        .res-col { background-color: #f8fafc; font-weight: bold; color: #333; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>填料塔吸收过程综合实验处理工具</h1>
+</header>
+
+<div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('part1')">实验一：流体力学 (双对数坐标)</button>
+    <button class="tab-btn" onclick="switchTab('part2')">实验二：吸收传质 (Kxa)</button>
+</div>
+
+<div id="part1" class="container active">
+    <div class="panel">
+        <div class="settings-bar">
+            <div class="setting-item"><label>塔径 D(m)</label><input type="number" id="p1_D" value="0.1" step="0.01" onchange="calcPart1()"></div>
+            <div class="setting-item"><label>P₀(kPa)</label><input type="number" id="p1_P0" value="101.325" onchange="calcPart1()"></div>
+            <div class="setting-item"><label>T₀(K)</label><input type="number" id="p1_T0" value="293.15" onchange="calcPart1()"></div>
+            <div class="setting-item"><label>Patm(kPa)</label><input type="number" id="p1_Patm" value="101.325" onchange="calcPart1()"></div>
+        </div>
+
+        <div class="grid-layout">
+            <div style="height: 650px; overflow-y: auto; padding-right: 5px;">
+                <div>
+                    <div style="display:flex; align-items:center; margin-bottom:5px;">
+                        <strong>🌵 干塔数据</strong>
+                        <button class="btn btn-add" onclick="addP1Row('dryBody')">+ 加一行</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:15%">读数Q<br>m³/h</th>
+                                <th style="width:15%">表压P<br>kPa</th>
+                                <th style="width:15%">温度T<br>℃</th>
+                                <th style="width:15%">压差<br>mm</th>
+                                <th style="width:15%">校正Qs<br>m³/h</th>
+                                <th style="width:12%">u<br>m/s</th>
+                                <th style="width:13%">ΔP<br>kPa</th>
+                                <th style="width:5%"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="dryBody"></tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <div style="display:flex; align-items:center; margin-bottom:5px;">
+                        <strong>💧 湿塔数据</strong>
+                        <button class="btn btn-add" onclick="addP1Row('wetBody')">+ 加一行</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:15%">读数Q<br>m³/h</th>
+                                <th style="width:15%">表压P<br>kPa</th>
+                                <th style="width:15%">温度T<br>℃</th>
+                                <th style="width:15%">压差<br>mm</th>
+                                <th style="width:15%">校正Qs<br>m³/h</th>
+                                <th style="width:12%">u<br>m/s</th>
+                                <th style="width:13%">ΔP<br>kPa</th>
+                                <th style="width:5%"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="wetBody"></tbody>
+                    </table>
+                </div>
+                
+                <button class="btn btn-export" onclick="exportPart1()">📥 导出流体数据 (Excel)</button>
+            </div>
+
+            <div>
+                <div id="chartDiv" style="width:100%; height:650px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="part2" class="container">
+    <div class="panel">
+        <div class="settings-bar">
+            <div class="setting-item"><label>塔径 D(m)</label><input type="number" id="p2_D" value="0.1" step="0.01" oninput="calcPart2()"></div>
+            <div class="setting-item"><label>层高 h(m)</label><input type="number" id="p2_H" value="0.988" step="0.001" oninput="calcPart2()"></div>
+            <div class="setting-item"><label>P₀(kPa)</label><input type="number" id="p2_P_atm" value="101.325" step="0.001" oninput="calcPart2()"></div>
+            <button class="btn btn-export" style="width: auto; margin:0;" onclick="exportPart2()">📥 导出吸收数据</button>
+        </div>
+
+        <table id="p2_Table">
+            <thead>
+                <tr>
+                    <th class="row-header">参数项目 (单位)</th>
+                    <th>第 1 组</th><th>第 2 组</th><th>第 3 组</th><th>第 4 组</th>
+                </tr>
+            </thead>
+            <tbody id="p2_Body"></tbody>
+        </table>
+        
+        <div style="margin-top:10px; color:#666; font-size:0.9em;">
+            * 注：气相流量 V 采用惰性气体(空气)摩尔流量。
+        </div>
+    </div>
+</div>
+
+<script>
+    // ================= 通用逻辑 =================
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.container').forEach(con => con.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+        if (tabId === 'part1') calcPart1(); 
+    }
+
+    // ================= 实验一逻辑 (流体力学) =================
+    const defaultDry = [
+        {Q: 5.0, P: 11.0, T: 32, dP: 2.0}, {Q: 8.0, P: 9.8, T: 33, dP: 4.0},
+        {Q: 11.0, P: 8.0, T: 33, dP: 8.0}, {Q: 16.0, P: 7.8, T: 34, dP: 10.0},
+        {Q: 20.0, P: 7.0, T: 34, dP: 14.0}, {Q: 30.0, P: 5.0, T: 35, dP: 28.0}
+    ];
+    const defaultWet = [
+        {Q: 5.0, P: 10.5, T: 34, dP: 15.0}, {Q: 8.0, P: 9.9, T: 34, dP: 24.0},
+        {Q: 9.0, P: 9.5, T: 34, dP: 31.0}, {Q: 11.0, P: 9.0, T: 35, dP: 52.0},
+        {Q: 13.0, P: 8.5, T: 36, dP: 84.0}, {Q: 15.0, P: 8.1, T: 36, dP: 128.0},
+        {Q: 16.0, P: 7.8, T: 36, dP: 188.0}, {Q: 18.0, P: 7.5, T: 36, dP: 331.0},
+        {Q: 20.0, P: 7.5, T: 35, dP: 446.0}
+    ];
+
+    function initPart1() {
+        renderP1Rows('dryBody', defaultDry);
+        renderP1Rows('wetBody', defaultWet);
+        calcPart1();
+    }
+
+    function renderP1Rows(tbodyId, data) {
+        const tbody = document.getElementById(tbodyId);
+        data.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="number" class="data-inp q-val" value="${row.Q}" oninput="calcPart1()"></td>
+                <td><input type="number" class="data-inp p-val" value="${row.P}" oninput="calcPart1()"></td>
+                <td><input type="number" class="data-inp t-val" value="${row.T}" oninput="calcPart1()"></td>
+                <td><input type="number" class="data-inp dp-val" value="${row.dP}" oninput="calcPart1()"></td>
+                <td class="res-col qs-res">-</td>
+                <td class="res-col u-res">-</td>
+                <td class="res-col dpkpa-res">-</td>
+                <td class="btn btn-del" onclick="this.parentElement.remove();calcPart1()">×</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function addP1Row(tbodyId) {
+        const tbody = document.getElementById(tbodyId);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="number" class="data-inp q-val" oninput="calcPart1()"></td>
+            <td><input type="number" class="data-inp p-val" oninput="calcPart1()"></td>
+            <td><input type="number" class="data-inp t-val" oninput="calcPart1()"></td>
+            <td><input type="number" class="data-inp dp-val" oninput="calcPart1()"></td>
+            <td class="res-col qs-res">-</td>
+            <td class="res-col u-res">-</td>
+            <td class="res-col dpkpa-res">-</td>
+            <td class="btn btn-del" onclick="this.parentElement.remove();calcPart1()">×</td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    function calcPart1() {
+        const D = parseFloat(document.getElementById('p1_D').value);
+        const P0 = parseFloat(document.getElementById('p1_P0').value);
+        const T0 = parseFloat(document.getElementById('p1_T0').value);
+        const Patm = parseFloat(document.getElementById('p1_Patm').value);
+        const area = 0.25 * Math.PI * D * D;
+
+        const dryRes = processP1Table('dryBody', P0, T0, Patm, area);
+        const wetRes = processP1Table('wetBody', P0, T0, Patm, area);
+        
+        drawP1Chart(dryRes, wetRes);
+    }
+
+    function processP1Table(tbodyId, P0, T0, Patm, area) {
+        const rows = document.querySelectorAll(`#${tbodyId} tr`);
+        const results = [];
+        rows.forEach(row => {
+            const Q = parseFloat(row.querySelector('.q-val').value);
+            const P = parseFloat(row.querySelector('.p-val').value);
+            const T = parseFloat(row.querySelector('.t-val').value);
+            const dP = parseFloat(row.querySelector('.dp-val').value);
+
+            if (isNaN(Q) || isNaN(P) || isNaN(T) || isNaN(dP)) {
+                row.querySelector('.qs-res').innerText = "-";
+                row.querySelector('.u-res').innerText = "-";
+                row.querySelector('.dpkpa-res').innerText = "-";
+                return;
+            }
+
+            const P_abs = Patm + P;
+            const T_abs = T + 273.15;
+            const Qs = Q * Math.sqrt((P0 * T_abs) / (P_abs * T0));
+            const u = Qs / 3600 / area;
+            const dP_kPa = dP * 0.00980665; 
+
+            row.querySelector('.qs-res').innerText = Qs.toFixed(2);
+            row.querySelector('.u-res').innerText = u.toFixed(3);
+            row.querySelector('.dpkpa-res').innerText = dP_kPa.toFixed(3);
+            
+            results.push({ u: u, dP: dP_kPa });
+        });
+        return results;
+    }
+
+    // 辅助函数：生成 1-2-5 序列的刻度
+    function generateCleanLogTicks(minVal, maxVal) {
+        if(minVal <= 0) minVal = 0.001; // 防止log(0)
+        const ticks = [];
+        const startExp = Math.floor(Math.log10(minVal));
+        const endExp = Math.ceil(Math.log10(maxVal));
+
+        for (let i = startExp; i <= endExp; i++) {
+            const base = Math.pow(10, i);
+            [1, 2, 5].forEach(k => {
+                const val = k * base;
+                if (val >= minVal * 0.9 && val <= maxVal * 1.1) {
+                    ticks.push(val);
+                }
+            });
+        }
+        return ticks;
+    }
+
+    function drawP1Chart(dryData, wetData) {
+        const traceDry = {
+            x: dryData.map(d => d.u), 
+            y: dryData.map(d => d.dP),
+            mode: 'lines+markers',
+            name: '干塔',
+            line: { shape: 'spline', color: '#333', width: 2 }, 
+            marker: { size: 8, color: '#333' }
+        };
+
+        const traceWet = {
+            x: wetData.map(d => d.u), 
+            y: wetData.map(d => d.dP),
+            mode: 'lines+markers',
+            name: '湿塔',
+            line: { shape: 'spline', color: '#c026d3', width: 2 },
+            marker: { size: 8, color: '#c026d3' }
+        };
+
+        // 计算所有数据范围，用于生成合适的刻度
+        const allU = [...dryData, ...wetData].map(d=>d.u);
+        const allP = [...dryData, ...wetData].map(d=>d.dP);
+        
+        let xTicks, yTicks;
+        if(allU.length > 0) {
+            xTicks = generateCleanLogTicks(Math.min(...allU), Math.max(...allU));
+            yTicks = generateCleanLogTicks(Math.min(...allP), Math.max(...allP));
+        }
+
+        const layout = {
+            title: {
+                text: '填料塔压降曲线 (Δp - u) 双对数坐标',
+                font: { family: 'Times New Roman', size: 20 }
+            },
+            font: { family: 'Times New Roman', size: 14, color: 'black' },
+            xaxis: { 
+                title: { text: '气速 u (m/s)', standoff: 20 }, // 增加距离防止重叠
+                type: 'log', 
+                showgrid: true, gridcolor: '#f0f0f0',
+                showline: true, linewidth: 2, linecolor: 'black', mirror: true,
+                tickmode: 'array', // 强制使用自定义刻度
+                tickvals: xTicks,
+                ticktext: xTicks ? xTicks.map(String) : [],
+                automargin: true 
+            },
+            yaxis: { 
+                title: { text: '塔顶底压降 Δp (kPa)', standoff: 20 }, // 增加距离
+                type: 'log', 
+                showgrid: true, gridcolor: '#f0f0f0',
+                showline: true, linewidth: 2, linecolor: 'black', mirror: true,
+                tickmode: 'array', // 强制使用自定义刻度
+                tickvals: yTicks,
+                ticktext: yTicks ? yTicks.map(String) : [],
+                automargin: true
+            },
+            paper_bgcolor: 'white',
+            plot_bgcolor: 'white',
+            margin: { t: 80, r: 40, l: 100, b: 80 }, // 增加左边距(l:100)给标题留空间
+            legend: { x: 0.05, y: 0.95, bordercolor: '#333', borderwidth: 1 },
+            toImageButtonOptions: {
+                format: 'png', filename: 'fluid_mechanics_chart_loglog',
+                height: 1200, width: 1600, scale: 3 
+            }
+        };
+
+        Plotly.newPlot('chartDiv', [traceDry, traceWet], layout, {responsive: true});
+    }
+
+    function exportPart1() {
+        const wb = XLSX.utils.book_new();
+        const ws_data = [
+            ["流体力学性能实验数据"],
+            ["塔内径 D (m)", document.getElementById('p1_D').value],
+            [],
+            ["类型", "读数Q", "表压P", "温度T", "压差mmH2O", "校正流量Qs", "气速u (m/s)", "压降ΔP (kPa)"]
+        ];
+
+        const pushData = (type, tbodyId) => {
+            document.querySelectorAll(`#${tbodyId} tr`).forEach(row => {
+                const vals = [
+                    row.querySelector('.q-val').value, row.querySelector('.p-val').value,
+                    row.querySelector('.t-val').value, row.querySelector('.dp-val').value,
+                    row.querySelector('.qs-res').innerText, 
+                    row.querySelector('.u-res').innerText, 
+                    row.querySelector('.dpkpa-res').innerText
+                ];
+                if(vals[0]) ws_data.push([type, ...vals.map(v => isNaN(v) ? v : parseFloat(v))]);
+            });
+        };
+
+        pushData("干塔", "dryBody");
+        pushData("湿塔", "wetBody");
+
+        const ws = XLSX.utils.aoa_to_sheet(ws_data);
+        XLSX.utils.book_append_sheet(wb, ws, "Fluid_Data");
+        XLSX.writeFile(wb, "流体力学实验数据.xlsx");
+    }
+
+    // ================= 实验二逻辑 (吸收传质) =================
+    const p2_InitialData = [
+        { Air_Q: 2.30, Air_T: 20, Air_P: 3.4, CO2_Q: 0.18, Water_Q: 680,  Water_T: 22, y1: 8.12, y2: 6.84, E: 1.528, rho: 997.8 },
+        { Air_Q: 2.30, Air_T: 20, Air_P: 3.4, CO2_Q: 0.18, Water_Q: 1000, Water_T: 22, y1: 8.16, y2: 6.34, E: 1.528, rho: 997.8 },
+        { Air_Q: 3.40, Air_T: 19, Air_P: 3.4, CO2_Q: 0.27, Water_Q: 680,  Water_T: 22, y1: 8.06, y2: 7.25, E: 1.528, rho: 997.8 },
+        { Air_Q: 2.30, Air_T: 19, Air_P: 3.4, CO2_Q: 0.14, Water_Q: 680,  Water_T: 22, y1: 6.27, y2: 5.34, E: 1.528, rho: 997.8 }
+    ];
+
+    const p2_Rows = [
+        { type: "section", title: "一、原始数据输入" },
+        { key: "Air_Q", label: "空气流量计读数", unit: "m³/h", type: "input" },
+        { key: "Air_T", label: "空气温度", unit: "°C", type: "input" },
+        { key: "Air_P", label: "空气表压", unit: "kPa", type: "input" },
+        { key: "CO2_Q", label: "CO₂ 流量", unit: "m³/h", type: "input" },
+        { key: "Water_Q", label: "水流量", unit: "L/h", type: "input" },
+        { key: "y1", label: "入口气相浓度 y₁", unit: "%", type: "input" },
+        { key: "y2", label: "出口气相浓度 y₂", unit: "%", type: "input" },
+        { key: "rho", label: "水密度 ρ", unit: "kg/m³", type: "input" },
+        { key: "E", label: "亨利系数 E", unit: "×10⁵ kPa", type: "input" },
+
+        { type: "section", title: "二、流体物性与流量计算" },
+        { key: "res_Qs", label: "空气校正流量 Qs", unit: "m³/h", type: "calc", fix: 3 },
+        { key: "res_V_air", label: "惰性气相摩尔流量 V (空气)", unit: "kmol/h", type: "calc", fix: 4, style: "font-weight:bold; color:#0f766e" },
+        { key: "res_V_co2", label: "溶质摩尔流量 (参考)", unit: "kmol/h", type: "calc", fix: 4, style: "color:#94a3b8" },
+        { key: "res_L", label: "惰性液相摩尔流量 L (水)", unit: "kmol/h", type: "calc", fix: 2, style: "font-weight:bold" },
+
+        { type: "section", title: "三、浓度换算与相平衡 (3位有效数字)" },
+        { key: "res_Y1", label: "入口摩尔比 Y₁", unit: "%", type: "calc", sig: 3 },
+        { key: "res_Y2", label: "出口摩尔比 Y₂", unit: "%", type: "calc", sig: 3 },
+        { key: "res_X1", label: "液相出口比 X₁", unit: "%", type: "calc", sig: 3, style: "color:#0f766e" },
+        { key: "res_x1", label: "液相出口分数 x₁", unit: "%", type: "calc", sig: 3 },
+        { key: "res_m", label: "相平衡常数 m", unit: "-", type: "calc", fix: 2 },
+        { key: "res_x_star1", label: "入口平衡分数 x₁*", unit: "%", type: "calc", sig: 3 },
+        { key: "res_x_star2", label: "出口平衡分数 x₂*", unit: "%", type: "calc", sig: 3 },
+
+        { type: "section", title: "四、传质结果 (基于 x)" },
+        { key: "res_dXm", label: "平均推动力 Δxm", unit: "%", type: "calc", sig: 3, style: "font-weight:bold" },
+        { key: "res_Kxa", label: "传质系数 K_xa", unit: "kmol/(m³·h)", type: "calc", fix: 2, class: "final-res" }
+    ];
+
+    function initPart2() {
+        const tbody = document.getElementById('p2_Body');
+        let html = '';
+        p2_Rows.forEach(row => {
+            if (row.type === 'section') {
+                html += `<tr><td colspan="5" class="section-title">${row.title}</td></tr>`;
+                return;
+            }
+            html += `<tr><th class="row-header">${row.label} <span class="unit-tag">(${row.unit})</span></th>`;
+            for(let i=0; i<4; i++) {
+                if(row.type === 'input') {
+                    let val = p2_InitialData[i][row.key];
+                    html += `<td><input type="number" step="any" class="data-inp" data-g="${i}" data-k="${row.key}" value="${val}" oninput="calcPart2()"></td>`;
+                } else {
+                    let style = row.style ? `style="${row.style}"` : "";
+                    let cls = row.class ? `class="res-val ${row.class}"` : 'class="res-val"';
+                    html += `<td id="${row.key}_${i}" ${cls} ${style}>-</td>`;
+                }
+            }
+            html += `</tr>`;
+        });
+        tbody.innerHTML = html;
+        calcPart2();
+    }
+
+    function formatSig(val, sig) {
+        if(!isFinite(val) || val === 0) return "0";
+        return (val * 100).toPrecision(sig);
+    }
+
+    function calcPart2() {
+        const D = parseFloat(document.getElementById('p2_D').value);
+        const H = parseFloat(document.getElementById('p2_H').value);
+        const P_atm = parseFloat(document.getElementById('p2_P_atm').value);
+        const Vol = 0.25 * Math.PI * D * D * H;
+        const R = 8.314;
+
+        for(let i=0; i<4; i++) {
+            const getVal = (k) => parseFloat(document.querySelector(`input[data-g="${i}"][data-k="${k}"]`).value);
+            const setText = (k, v) => document.getElementById(`${k}_${i}`).innerText = v;
+            const setNum = (k, v, f) => setText(k, isFinite(v) ? v.toFixed(f) : "-");
+            const setSig = (k, v, s) => setText(k, formatSig(v, s));
+
+            const Q_air = getVal('Air_Q'), T_air = getVal('Air_T'), P_gauge = getVal('Air_P');
+            const Q_co2 = getVal('CO2_Q'), Q_water = getVal('Water_Q');
+            const y1_pct = getVal('y1'), y2_pct = getVal('y2');
+            const rho = getVal('rho'), E = getVal('E');
+
+            // 计算
+            const P_abs = P_atm + P_gauge;
+            const T_abs = T_air + 273.15;
+            const Qs = Q_air * Math.sqrt((101.325 * T_abs) / (P_abs * 293.15));
+            const V_air = (P_abs * Qs) / (R * T_abs);
+            const V_co2 = Q_co2 / 22.414;
+            const L = (Q_water * rho / 1000) / 18.015;
+
+            const y1 = y1_pct/100, y2 = y2_pct/100;
+            const Y1 = y1/(1-y1), Y2 = y2/(1-y2);
+            
+            // 衡算 (V_air)
+            const X1 = (V_air / L) * (Y1 - Y2);
+            const x1 = X1 / (1 + X1);
+            
+            // 平衡
+            const m = (E * 1e5) / P_atm;
+            const x_star1 = y1 / m, x_star2 = y2 / m;
+            
+            // 推动力 (x)
+            const dX1 = x_star1 - x1;
+            const dX2 = x_star2; // x2=0
+            let dXm = 0;
+            if(dX1 > 0 && dX2 > 0) dXm = (dX1 - dX2) / Math.log(dX1/dX2);
+
+            // K_xa (V_air)
+            const NA = V_air * (Y1 - Y2);
+            const KXa = dXm > 0 ? NA / (Vol * dXm) : 0;
+
+            // 填充
+            setNum("res_Qs", Qs, 3); setNum("res_V_air", V_air, 4); 
+            setNum("res_V_co2", V_co2, 4); setNum("res_L", L, 2);
+            setSig("res_Y1", Y1, 3); setSig("res_Y2", Y2, 3);
+            setSig("res_X1", X1, 3); setSig("res_x1", x1, 3);
+            setNum("res_m", m, 2); 
+            setSig("res_x_star1", x_star1, 3); setSig("res_x_star2", x_star2, 3);
+            setSig("res_dXm", dXm, 3); setNum("res_Kxa", KXa, 2);
+        }
+    }
+
+    function exportPart2() {
+        const wb = XLSX.utils.book_new();
+        const ws_data = [
+            ["吸收实验数据"],
+            ["塔径 D (m)", document.getElementById('p2_D').value],
+            ["层高 h (m)", document.getElementById('p2_H').value],
+            ["P_atm (kPa)", document.getElementById('p2_P_atm').value],
+            [],
+            ["参数", "单位", "第1组", "第2组", "第3组", "第4组"]
+        ];
+
+        p2_Rows.forEach(row => {
+            if(row.type === 'section') { ws_data.push([row.title]); return; }
+            const line = [row.label, row.unit || "-"];
+            for(let i=0; i<4; i++) {
+                if(row.type === 'input') line.push(parseFloat(document.querySelector(`input[data-g="${i}"][data-k="${row.key}"]`).value));
+                else line.push(parseFloat(document.getElementById(`${row.key}_${i}`).innerText) || document.getElementById(`${row.key}_${i}`).innerText);
+            }
+            ws_data.push(line);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(ws_data);
+        XLSX.utils.book_append_sheet(wb, ws, "Absorption_Data");
+        XLSX.writeFile(wb, "吸收实验数据.xlsx");
+    }
+
+    // 初始化运行
+    initPart1();
+    initPart2();
+</script>
+
+</body>
+</html>

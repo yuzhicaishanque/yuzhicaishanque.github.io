@@ -403,8 +403,8 @@
       
         <figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">% 输入x,y1,y2</span><br><span class="line">x=[1 2 3 4 4.5];</span><br><span class="line">y1=[1.08 2.18 3.19 4.21 4.71];</span><br><span class="line">y2=[0.08 0.18 0.19 0.21 0.21];</span><br><span class="line">% 绘制左边y轴图形数据</span><br><span class="line">yyaxis left</span><br><span class="line">% 用plot函数绘制图像</span><br><span class="line">% &#x27;b--o&#x27; 是线条和标记的样式说明符：&#x27;b&#x27; 表示蓝色；&#x27;--&#x27; 表示虚线；&#x27;o&#x27; 表示圆圈标记。</span><br><span class="line">% &#x27;LineWidth&#x27;, 2 设置线条的宽度为 2 个单位。</span><br><span class="line">% &#x27;MarkerSize&#x27;, 6 设置标记的大小为 6 个单位。</span><br><span class="line">% &#x27;MarkerEdgeColor&#x27;, &#x27;k&#x27; 设置标记边缘的颜色为黑色。</span><br><span class="line">% &#x27;MarkerFaceColor&#x27;, &#x27;b&#x27; 设置标记填充的颜色为蓝色。</span><br><span class="line">plot(x, y1,&#x27;b--o&#x27;, &#x27;LineWidth&#x27;,2, &#x27;MarkerSize&#x27;,6, &#x27;MarkerEdgeColor&#x27;, &#x27;k&#x27;, &#x27;MarkerFaceColor&#x27;,&#x27;b&#x27;);   </span><br><span class="line">% 保留已绘制的所有图形，并继续作图。</span><br><span class="line">hold on</span><br><span class="line">% 写左边y轴的轴标题</span><br><span class="line">ylabel(&#x27;I_&#123;标准&#125;/mA&#x27;)</span><br><span class="line">% axis 函数用于设置当前图形窗口的坐标轴范围。当前图形的 x 轴范围设置为从1到5，y轴范围设置为从0到6。</span><br><span class="line">axis([1 5 0 6]);</span><br><span class="line">% set 函数用于设置图形对象的属性。当前图形窗口的 Y 轴刻度设置为0,1,2,3,4和5。</span><br><span class="line">set(gca,&#x27;YTick&#x27;,[0 1 2 3 4 5 ]);</span><br><span class="line">% 绘制左边y轴图形数据</span><br><span class="line">yyaxis right</span><br><span class="line">% 与上面的类似，除了线条改为紫红色与点线，标记填充颜色为红色。</span><br><span class="line">plot(x, y2,&#x27;m:^&#x27;, &#x27;LineWidth&#x27;,2, &#x27;MarkerSize&#x27;,6, &#x27;MarkerEdgeColor&#x27;, &#x27;k&#x27;, &#x27;MarkerFaceColor&#x27;,&#x27;r&#x27;);</span><br><span class="line">% 写右边y轴轴标题</span><br><span class="line">ylabel(&#x27;ΔI/mA&#x27;)</span><br><span class="line">% 写x轴标题</span><br><span class="line">xlabel(&#x27;I_&#123;改装&#125;/mA&#x27;)</span><br><span class="line">% 写图标题</span><br><span class="line">title(&#x27;附图1 5mA量程电流表的校准曲线&#x27;)</span><br><span class="line">% 写图例</span><br><span class="line">legend(&#x27;I_&#123;标准&#125;&#x27;, &#x27;△I&#x27;);</span><br><span class="line">% x轴范围为1到5，y轴为0到。</span><br><span class="line">axis([1 5 0 1]);</span><br><span class="line">% y轴刻度为0到1</span><br><span class="line">set(gca,&#x27;YTick&#x27;,[0  0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1]);</span><br><span class="line">% 图片大小为长14.5cm高12cm</span><br><span class="line">set(gcf, &#x27;Units&#x27;, &#x27;centimeters&#x27;, &#x27;Position&#x27;, [6, 6, 14.5, 12]); </span><br><span class="line">% 画网格</span><br><span class="line">grid on</span><br></pre></td></tr></table></figure>
 <p>结果为</p>
-<p><img src="https://github.com/yuzhicaishanque/image-bed/blob/main/%E9%99%84%E5%9B%BE1%205mA%E9%87%8F%E7%A8%8B%E7%94%B5%E6%B5%81%E8%A1%A8%E7%9A%84%E6%A0%A1%E5%87%86%E6%9B%B2%E7%BA%BF.jpg?raw=true" alt="" /></p>
-<h6 id="补充1"><a class="markdownIt-Anchor" href="#补充1"></a> 补充1</h6>
+<p><img src="https://github.com/yuzhicaishanque/image-bed/blob/main/%E9%99%84%E5%9B%BE1%205mA%E9%87%8F%E7%A8%8B%E7%94%B5%E6%B5%81%E8%A1%A8%E7%9A%84%E6%A0%A1%E5%87%86%E6%9B%B2%E7%BA%BF.jpg?raw=true" alt=""></p>
+<h6 id="补充1">补充1</h6>
 <p>matlab支持部分 TeX 标记，也可以可以改用 LaTeX 标记。通过这个我们可以写上下标与特殊符号。</p>
 <p><a target="_blank" rel="noopener" href="https://ww2.mathworks.cn/help/matlab/creating_plots/greek-letters-and-special-characters-in-graph-text_zh_CN.html#buh1xet">图文本中的希腊字母和特殊字符 - MATLAB &amp; Simulink - MathWorks 中国</a></p>
 <p>常用的如下</p>
@@ -439,7 +439,7 @@
 </tr>
 </tbody>
 </table>
-<h6 id="补充2"><a class="markdownIt-Anchor" href="#补充2"></a> 补充2</h6>
+<h6 id="补充2">补充2</h6>
 <p>matlab中改变线型与标记</p>
 <p><a target="_blank" rel="noopener" href="https://ww2.mathworks.cn/help/matlab/creating_plots/specify-line-and-marker-appearance-in-plots.html">指定绘图中的线和标记的外观 - MATLAB &amp; Simulink - MathWorks 中国</a></p>
 <p>常用的如下：</p>
@@ -455,22 +455,22 @@
 <tr>
 <td>“-”</td>
 <td>实线</td>
-<td><img src="https://ww2.mathworks.cn/help/matlab/creating_plots/linestyle_solid.png" alt="" /></td>
+<td><img src="https://ww2.mathworks.cn/help/matlab/creating_plots/linestyle_solid.png" alt=""></td>
 </tr>
 <tr>
 <td>“–”</td>
 <td>虚线</td>
-<td><img src="https://ww2.mathworks.cn/help/matlab/creating_plots/linestyle_dashed.png" alt="" /></td>
+<td><img src="https://ww2.mathworks.cn/help/matlab/creating_plots/linestyle_dashed.png" alt=""></td>
 </tr>
 <tr>
 <td>“:”</td>
 <td>点线</td>
-<td><img src="https://ww2.mathworks.cn/help/matlab/creating_plots/linestyle_dotted.png" alt="" /></td>
+<td><img src="https://ww2.mathworks.cn/help/matlab/creating_plots/linestyle_dotted.png" alt=""></td>
 </tr>
 <tr>
 <td>“-.”</td>
 <td>点划线</td>
-<td><img src="https://ww2.mathworks.cn/help/matlab/creating_plots/linestyle_dashdotted.png" alt="" /></td>
+<td><img src="https://ww2.mathworks.cn/help/matlab/creating_plots/linestyle_dashdotted.png" alt=""></td>
 </tr>
 </tbody>
 </table>
@@ -486,26 +486,26 @@
 <tr>
 <td>“o”</td>
 <td>圆圈</td>
-<td><img src="https://ww2.mathworks.cn/help/matlab/creating_plots/marker_o.png" alt="" /></td>
+<td><img src="https://ww2.mathworks.cn/help/matlab/creating_plots/marker_o.png" alt=""></td>
 </tr>
 <tr>
 <td>“+”</td>
 <td>加号</td>
-<td><img src="https://ww2.mathworks.cn/help/matlab/creating_plots/marker_plus.png" alt="" /></td>
+<td><img src="https://ww2.mathworks.cn/help/matlab/creating_plots/marker_plus.png" alt=""></td>
 </tr>
 <tr>
 <td>“*”</td>
 <td>星号</td>
-<td><img src="https://ww2.mathworks.cn/help/matlab/creating_plots/marker_asterisk.png" alt="" /></td>
+<td><img src="https://ww2.mathworks.cn/help/matlab/creating_plots/marker_asterisk.png" alt=""></td>
 </tr>
 <tr>
 <td>“^”</td>
 <td>上三角</td>
-<td><img src="https://ww2.mathworks.cn/help/matlab/creating_plots/marker_uptriangle.png" alt="" /></td>
+<td><img src="https://ww2.mathworks.cn/help/matlab/creating_plots/marker_uptriangle.png" alt=""></td>
 </tr>
 </tbody>
 </table>
-<h6 id="补充3"><a class="markdownIt-Anchor" href="#补充3"></a> 补充3</h6>
+<h6 id="补充3">补充3</h6>
 <p>绘制线条时设置颜色</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">% 使用颜色名称 </span><br><span class="line">plot(x, y, &#x27;Color&#x27;, &#x27;red&#x27;); </span><br><span class="line">% 使用 RGB 三元组 </span><br><span class="line">plot(x, y, &#x27;Color&#x27;, [1 0 0]); % 红色 </span><br><span class="line">% 使用十六进制颜色代码 </span><br><span class="line">plot(x, y, &#x27;Color&#x27;, &#x27;#FF0000&#x27;); % 红色</span><br></pre></td></tr></table></figure>
 <p>常用颜色</p>

@@ -74,6 +74,15 @@
   </url>
   
   <url>
+    <loc>https://yuzhicaishanque.github.io/404.html</loc>
+    
+    <lastmod>2022-03-21</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://yuzhicaishanque.github.io/books/index.html</loc>
     
     <lastmod>2022-03-21</lastmod>
@@ -118,15 +127,6 @@
     <priority>0.6</priority>
   </url>
   
-  <url>
-    <loc>https://yuzhicaishanque.github.io/404.html</loc>
-    
-    <lastmod>2022-03-21</lastmod>
-    
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
 
   <url>
     <loc>https://yuzhicaishanque.github.io/</loc>
@@ -144,14 +144,7 @@
   </url>
   
   <url>
-    <loc>https://yuzhicaishanque.github.io/tags/%E7%94%9F%E6%B4%BB/</loc>
-    <lastmod>2025-12-26</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>https://yuzhicaishanque.github.io/tags/%E5%8C%96%E5%B7%A5/</loc>
+    <loc>https://yuzhicaishanque.github.io/tags/%E5%8C%96%E5%AD%A6/</loc>
     <lastmod>2025-12-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -165,7 +158,14 @@
   </url>
   
   <url>
-    <loc>https://yuzhicaishanque.github.io/tags/%E5%8C%96%E5%AD%A6/</loc>
+    <loc>https://yuzhicaishanque.github.io/tags/%E7%94%9F%E6%B4%BB/</loc>
+    <lastmod>2025-12-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://yuzhicaishanque.github.io/tags/%E5%8C%96%E5%B7%A5/</loc>
     <lastmod>2025-12-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>

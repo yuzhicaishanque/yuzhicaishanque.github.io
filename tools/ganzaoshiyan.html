@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>干燥实验数据处理 (论文规范版)</title>
+    <title>干燥实验数据处理</title>
     
     <script src="https://cdn.staticfile.org/plotly.js/2.24.1/plotly.min.js"></script>
     <script src="https://cdn.staticfile.org/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -51,7 +51,7 @@
         .stat-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
         .stat-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: #3b82f6; }
         
-        .stat-card h3 { margin: 0 0 12px 0; color: #64748b; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.02em; }
+        .stat-card h3 { margin: 0 0 12px 0; color: #64748b; font-size: 0.85rem; font-weight: 600; }
         .stat-card .value { font-size: 1.8rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
         .stat-card .unit { font-size: 0.85rem; color: #94a3b8; margin-top: 6px; display: block; font-weight: 500; }
         .stat-card.highlight::before { background: #f59e0b; }
@@ -105,7 +105,7 @@
         </div>
 
         <div class="section-title">
-            汽化热文献插值
+            汽化热文献插值求湿球温度对应气化热
         </div>
         <div class="input-group">
             <label>单位选择</label>
@@ -191,11 +191,11 @@
                 <thead>
                     <tr>
                         <th>序号</th>
-                        <th>时间 t (min)</th>
+                        <th>累计时间 t (min)</th>
                         <th>总重量 G (g)</th>
                         <th>含水量 X (kg/kg)</th>
                         <th>平均 Xavg (kg/kg)</th>
-                        <th>速率 U (10⁻⁴kg/(s·m²))</th>
+                        <th>速率 U (10⁻⁴ kg/(s·m²))</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -422,7 +422,7 @@
                 title: { text: '干燥速率曲线', font: {size: 18, color: '#333'} },
                 margin: { t:60, l:70, r:40, b:60 },
                 hovermode: 'closest',
-                xaxis: { ...commonAxis, title: {text: '干基含水量 X (kg/kg)', font:{size:14, color:'black'}} },
+                xaxis: { ...commonAxis, title: {text: '含水量 X (kg/kg)', font:{size:14, color:'black'}} },
                 yaxis: { ...commonAxis, title: {text: '干燥速率 U (×10⁻⁴ kg/s·m²)', font:{size:14, color:'black'}}, range: yRange, rangemode: 'tozero' },
                 showlegend: true,
                 legend: {
@@ -431,16 +431,15 @@
                 }
             };
 
-            // 高清导出配置
+            // 高清导出配置: 关键在于移除 width/height 并加大 scale
             const config = {
                 responsive: true,
                 displayModeBar: true,
                 toImageButtonOptions: {
-                    format: 'svg', // 默认下载矢量图 (无限清晰)
+                    format: 'png', // 推荐 PNG，设置 scale 后非常清晰且兼容性好
                     filename: 'drying_rate_curve',
-                    height: 800,
-                    width: 1200,
-                    scale: 1 // SVG不需要scale，若是png建议设为3
+                    // 不设置 width/height，让它自动使用当前屏幕的比例
+                    scale: 4 // 4倍分辨率，相当于 4K 画质
                 }
             };
 
@@ -461,7 +460,7 @@
                 title: { text: '干燥曲线 (X - t)', font: {size: 18, color: '#333'} },
                 margin: { t:60, l:70, r:40, b:60 },
                 xaxis: { ...commonAxis, title: {text: '干燥时间 t (min)', font:{size:14, color:'black'}} },
-                yaxis: { ...commonAxis, title: {text: '干基含水量 X (kg/kg)', font:{size:14, color:'black'}}, rangemode: 'tozero' },
+                yaxis: { ...commonAxis, title: {text: '含水量 X (kg/kg)', font:{size:14, color:'black'}}, rangemode: 'tozero' },
                 showlegend: true,
                 legend: layoutRate.legend
             };
